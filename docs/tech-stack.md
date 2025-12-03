@@ -82,7 +82,7 @@
 - **Mocking:** Mockito (`@MockBean`, `@SpyBean`)
 
 ### 4.2 Integration Testing (Critical)
-- **Tool:** **Testcontainers**
+- **Tool:** **Testcontainers**침
 - **Policy:**
     - 인메모리 Redis(Embedded Redis) 대신 **Docker 기반의 Testcontainers**를 사용하여 실제 운영 환경과 동일한 Redis 7.x, MySQL 8.0 환경에서 테스트한다.
     - Kafka 역시 Testcontainers(`Confluentinc`)를 사용한다.
@@ -96,7 +96,7 @@
 ## 5. Build & Dev Tools
 
 - **Build Tool:** **Gradle 8.5+**
-- **DSL:** Kotlin DSL (`build.gradle.kts`)
+- **DSL:** Groovy DSL (`build.gradle`)
 - **Utils:**
     - **Lombok:** (`@RequiredArgsConstructor`, `@Getter`, `@ToString` 위주 사용)
     - **Jackson:** (`ObjectMapper` - JavaTimeModule 등록 필수)
