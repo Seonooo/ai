@@ -1,0 +1,23 @@
+// common 모듈은 Spring Boot 애플리케이션이 아닌 라이브러리
+// bootJar를 비활성화하고 jar만 생성
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    // Spring Boot Web (DTO에서 사용할 어노테이션)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+}
+
+// 일반 jar만 생성 (executable jar 아님)
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('jar') {
+    enabled = true
+}
