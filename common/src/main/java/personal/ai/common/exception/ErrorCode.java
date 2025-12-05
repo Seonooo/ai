@@ -35,7 +35,8 @@ public enum ErrorCode {
     QUEUE_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 토큰을 찾을 수 없습니다."),
     QUEUE_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Q002", "대기열 토큰이 만료되었습니다."),
     QUEUE_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "Q003", "유효하지 않은 대기열 토큰입니다."),
-    QUEUE_FULL(HttpStatus.TOO_MANY_REQUESTS, "Q004", "대기열이 가득 찼습니다.");
+    QUEUE_FULL(HttpStatus.TOO_MANY_REQUESTS, "Q004", "대기열이 가득 찼습니다."),
+    QUEUE_EXTENSION_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "Q005", "더 이상 연장할 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
