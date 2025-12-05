@@ -23,9 +23,13 @@ public class OutboxEventScheduler {
      */
     @Scheduled(fixedDelay = 500)
     public void schedulePublishing() {
-        int publishedCount = publishPendingEventsUseCase.publishPendingEvents();
-        if (publishedCount > 0) {
-            log.debug("Scheduled publishing completed. Count: {}", publishedCount);
+        try {
+            int publishedCount = publishPendingEventsUseCase.publishPendingEvents();
+            if (publishedCount > 0) {
+                log.debug("Scheduled publishing completed. Count: {}", publishedCount);
+            }
+        } catch (Exception e) {
+            log.error("Failed to execute scheduled publishing", e);
         }
     }
 }
