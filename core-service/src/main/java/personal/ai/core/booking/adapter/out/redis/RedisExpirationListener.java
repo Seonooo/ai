@@ -40,12 +40,6 @@ public class RedisExpirationListener implements MessageListener {
             // 1. 트랜잭션 처리 (DB 작업)
             bookingManager.expireReservation(reservationId);
 
-            // 2. Redis 락 해제 (DB 트랜잭션과 별도, Best Effort)
-            // 필요한 경우 여기서 수행하거나 BookingManager 내부에서 SeatLockService 호출 가능
-            // 하지만 SeatLockRepository는 redis 어댑터 쪽이므로 여기서 호출하는 게 의존성 상 깔끔할 수 있음
-            // (단, reservation 정보가 있어야 함. 여기선 ID만 아므로...)
-            // 일단은 DB 정합성이 최우선이므로 BookingManager 호출로 충분. Redis 락은 TTL로 만료됨.
-
         } catch (Exception e) {
             log.error("Failed to handle reservation expiration: key={}", expiredKey, e);
         }
