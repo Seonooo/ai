@@ -50,6 +50,6 @@ public class UserService implements ValidateUserUseCase, GetUserUseCase {
         log.debug("Getting user by email: email={}", email);
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException(null));
+                .orElseThrow(() -> new UserNotFoundException(email));
     }
 }
