@@ -37,13 +37,29 @@ queue:
 
   # 활성 대기열 설정
   active:
-    max-size: ${QUEUE_ACTIVE_MAX_SIZE:100}  # 동시 처리 가능 인원
+    max-size: ${QUEUE_ACTIVE_MAX_SIZE:50000}  # 동시 처리 가능 인원 (대규모 트래픽 대비)
     token-ttl-seconds: ${QUEUE_ACTIVE_TOKEN_TTL:300}  # 토큰 유효시간 (5분)
 
   # 스케줄러 설정
   scheduler:
     activation-interval-ms: ${QUEUE_ACTIVATION_INTERVAL:5000}  # 활성화 주기 (5초)
-    cleanup-interval-ms: ${QUEUE_CLEANUP_INTERVAL:60000}  # 만료 토큰 정리 주기 (1분)
+    cleanup-interval-ms: ${QUEUE_CLEANUP_INTERVAL:1000}  # 만료 토큰 정리 주기 (1초)
+
+  # 폴링 설정
+  polling:
+    fast-interval-ms: ${QUEUE_POLLING_FAST_INTERVAL:3000}      # 빠른 폴링 간격 (3초)
+    slow-interval-ms: ${QUEUE_POLLING_SLOW_INTERVAL:10000}     # 느린 폴링 간격 (10초)
+    fast-threshold: ${QUEUE_POLLING_FAST_THRESHOLD:1000}       # 빠른 폴링 기준 순번
+    min-interval-ms: ${QUEUE_POLLING_MIN_INTERVAL:2000}        # 클라이언트 권장 최소 폴링 간격 (2초)
+    # Token Bucket Rate Limiting
+    rate-limit-capacity: ${QUEUE_POLLING_RATE_LIMIT_CAPACITY:10}    # 버킷 최대 용량 (10개)
+    rate-limit-refill-rate: ${QUEUE_POLLING_RATE_LIMIT_REFILL:0.5}  # 초당 리필 토큰 수 (0.5 = 2초당 1개)
+    executor-pool-size: ${QUEUE_POLLING_EXECUTOR_POOL_SIZE:10}      # Virtual Thread Executor 풀 크기
+
+# Kafka Topic 설정
+kafka:
+  topic:
+    payment-completed: ${KAFKA_TOPIC_PAYMENT_COMPLETED:booking.payment.completed}
 
 management:
   endpoints:

@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import personal.ai.common.health.HealthCheckService;
+import personal.ai.queue.adapter.in.web.filter.RateLimitFilter;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import org.springframework.data.redis.core.RedisCallback;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -21,7 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * agent.md Testing Strategy - BDD Style (Given-When-Then)
  * @WebMvcTest를 사용하여 컨트롤러 계층만 테스트
  */
-@WebMvcTest(QueueHealthCheckController.class)
+@WebMvcTest(value = QueueHealthCheckController.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = RateLimitFilter.class))
 @DisplayName("Queue Service Health Check API 단위 테스트")
 class QueueHealthCheckControllerTest {
 
