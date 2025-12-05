@@ -21,9 +21,6 @@ public class OutboxEventFactory {
     private final ObjectMapper objectMapper;
 
     /**
-     * Reservation을 OutboxEventEntity로 변환
-     */
-    /**
      * Reservation을 OutboxEventEntity로 변환 (Created)
      */
     public OutboxEventEntity createReservationCreatedEvent(Reservation reservation) {
