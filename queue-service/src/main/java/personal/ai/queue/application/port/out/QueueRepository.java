@@ -69,6 +69,14 @@ public interface QueueRepository {
     void updateTokenExpiration(String concertId, String userId, Instant expiredAt);
 
     /**
+     * Active Token의 상태 변경 (READY -> ACTIVE)
+     * @param concertId 콘서트 ID
+     * @param userId 유저 ID
+     * @param status 새로운 상태
+     */
+    void updateTokenStatus(String concertId, String userId, personal.ai.queue.domain.model.QueueStatus status);
+
+    /**
      * Active Token의 연장 횟수 증가
      * @param concertId 콘서트 ID
      * @param userId 유저 ID

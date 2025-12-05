@@ -15,6 +15,7 @@ import personal.ai.queue.domain.model.QueueToken;
 import personal.ai.queue.domain.service.QueueDomainService;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Queue Application Service
@@ -28,11 +29,17 @@ public class QueueService implements
         GetQueueStatusUseCase,
         ActivateTokenUseCase,
         ExtendTokenUseCase,
-        ValidateTokenUseCase {
+        ValidateTokenUseCase,
+        GetActiveConcertsUseCase,
+        RemoveFromQueueUseCase {
 
     private final QueueRepository queueRepository;
     private final QueueDomainService domainService;
     private final QueueConfig queueConfig;
+
+    // 상수
+    private static final int POSITION_DISPLAY_OFFSET = 1; // 사용자에게 표시할 때 1-based로 변환
+    private static final int INITIAL_EXTEND_COUNT = 0; // 최초 활성화 시 연장 횟수
 
     @Override
     public QueuePosition enter(EnterQueueCommand command) {
@@ -52,14 +59,14 @@ public class QueueService implements
         QueuePosition queuePosition = QueuePosition.calculate(
                 command.concertId(),
                 command.userId(),
-                position + 1, // 1-based position for user display
+                position + POSITION_DISPLAY_OFFSET,
                 totalWaiting,
                 queueConfig.activeMaxSize(),
-                5 // activation interval in seconds (from config)
+                queueConfig.activationIntervalSeconds()
         );
 
         log.info("User entered queue: position={}, totalWaiting={}",
-                position + 1, totalWaiting);
+                position + POSITION_DISPLAY_OFFSET, totalWaiting);
 
         return queuePosition;
     }
@@ -98,7 +105,7 @@ public class QueueService implements
             return QueueToken.waiting(
                     query.concertId(),
                     query.userId(),
-                    position + 1 // 1-based
+                    position + POSITION_DISPLAY_OFFSET
             );
         }
 
@@ -129,6 +136,15 @@ public class QueueService implements
 
         // READY -> ACTIVE 전환 및 TTL 10분으로 연장
         Instant newExpiration = domainService.calculateActiveExpiration();
+
+        // 상태 변경: READY -> ACTIVE
+        queueRepository.updateTokenStatus(
+                command.concertId(),
+                command.userId(),
+                QueueStatus.ACTIVE
+        );
+
+        // 만료 시간 갱신
         queueRepository.updateTokenExpiration(
                 command.concertId(),
                 command.userId(),
@@ -143,7 +159,7 @@ public class QueueService implements
                 command.userId(),
                 token.token(),
                 newExpiration,
-                0 // 최초 활성화 시 연장 횟수 0
+                INITIAL_EXTEND_COUNT
         );
     }
 
@@ -221,5 +237,21 @@ public class QueueService implements
 
         log.debug("Token validated successfully: concertId={}, userId={}",
                 query.concertId(), query.userId());
+    }
+
+    @Override
+    public List<String> getActiveConcerts() {
+        return queueRepository.getActiveConcertIds();
+    }
+
+    @Override
+    public void removeFromQueue(RemoveFromQueueCommand command) {
+        log.info("Removing user from queue: concertId={}, userId={}",
+                command.concertId(), command.userId());
+
+        queueRepository.removeFromActiveQueue(command.concertId(), command.userId());
+
+        log.info("User removed from queue: concertId={}, userId={}",
+                command.concertId(), command.userId());
     }
 }

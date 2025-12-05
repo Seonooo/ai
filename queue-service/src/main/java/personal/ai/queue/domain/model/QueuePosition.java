@@ -11,6 +11,9 @@ public record QueuePosition(
         Long totalWaiting,
         Integer estimatedWaitMinutes
 ) {
+    // 상수
+    private static final int SECONDS_PER_MINUTE = 60;
+
     /**
      * 예상 대기 시간 계산
      * @param concertId 콘서트 ID
@@ -31,7 +34,7 @@ public record QueuePosition(
         // 예상 대기 시간 계산
         // (순번 / 동시처리인원) * 활성화주기 / 60 = 분 단위
         int estimatedMinutes = (int) Math.ceil(
-                (double) position / activeCapacity * processIntervalSeconds / 60
+                (double) position / activeCapacity * processIntervalSeconds / SECONDS_PER_MINUTE
         );
 
         return new QueuePosition(

@@ -76,10 +76,21 @@ public class QueueSchedulerService implements
 
     @Override
     public int moveAllConcerts() {
-        // TODO: 실제 구현 시 활성화된 콘서트 목록을 조회하여 처리
-        // 현재는 단순 구현
-        log.debug("Moving all concerts - not implemented yet");
-        return 0;
+        log.debug("Moving all concerts");
+
+        List<String> concertIds = queueRepository.getActiveConcertIds();
+        int totalMoved = 0;
+
+        for (String concertId : concertIds) {
+            try {
+                int moved = moveWaitingToActive(concertId);
+                totalMoved += moved;
+            } catch (Exception e) {
+                log.error("Failed to move users for concertId={}", concertId, e);
+            }
+        }
+
+        return totalMoved;
     }
 
     @Override
@@ -97,9 +108,20 @@ public class QueueSchedulerService implements
 
     @Override
     public long cleanupAllConcerts() {
-        // TODO: 실제 구현 시 활성화된 콘서트 목록을 조회하여 처리
-        // 현재는 단순 구현
-        log.debug("Cleaning up all concerts - not implemented yet");
-        return 0;
+        log.debug("Cleaning up all concerts");
+
+        List<String> concertIds = queueRepository.getActiveConcertIds();
+        long totalRemoved = 0;
+
+        for (String concertId : concertIds) {
+            try {
+                long removed = cleanupExpired(concertId);
+                totalRemoved += removed;
+            } catch (Exception e) {
+                log.error("Failed to cleanup tokens for concertId={}", concertId, e);
+            }
+        }
+
+        return totalRemoved;
     }
 }
