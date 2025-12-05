@@ -47,7 +47,12 @@ public class OutboxEventService implements PublishPendingEventsUseCase {
 
             } catch (Exception e) {
                 log.error("Failed to publish event: id={}", event.getId(), e);
-                event.markAsFailed(); // Update Status and Retry Count
+                event.incrementRetryCount();
+
+                if (event.getRetryCount() >= 3) { // MAX_RETRY_COUNT (should match Adapter's query)
+                    event.markAsFailed();
+                }
+
                 outboxEventRepository.save(event);
             }
         }

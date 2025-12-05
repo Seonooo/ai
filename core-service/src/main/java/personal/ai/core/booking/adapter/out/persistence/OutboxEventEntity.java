@@ -12,10 +12,9 @@ import java.time.LocalDateTime;
  * Transactional Outbox Pattern을 위한 이벤트 저장소
  */
 @Entity
-@Table(name = "outbox_events",
-        indexes = {
-                @Index(name = "idx_status_created", columnList = "status, created_at")
-        })
+@Table(name = "outbox_events", indexes = {
+        @Index(name = "idx_status_created", columnList = "status, created_at")
+})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OutboxEventEntity {
@@ -50,7 +49,7 @@ public class OutboxEventEntity {
     private int retryCount = 0;
 
     public static OutboxEventEntity create(String aggregateType, Long aggregateId,
-                                           String eventType, String payload) {
+            String eventType, String payload) {
         OutboxEventEntity entity = new OutboxEventEntity();
         entity.aggregateType = aggregateType;
         entity.aggregateId = aggregateId;
@@ -98,8 +97,7 @@ public class OutboxEventEntity {
         this.retryCount++;
     }
 
-    public void retry() {
-        this.status = OutboxEventStatus.PENDING;
+    public void incrementRetryCount() {
         this.retryCount++;
     }
 
@@ -116,13 +114,12 @@ public class OutboxEventEntity {
                 personal.ai.core.booking.domain.model.OutboxEvent.OutboxEventStatus.valueOf(status.name()),
                 createdAt,
                 publishedAt,
-                retryCount
-        );
+                retryCount);
     }
 
     public enum OutboxEventStatus {
-        PENDING,    // 발행 대기
-        PUBLISHED,  // 발행 완료
-        FAILED      // 발행 실패
+        PENDING, // 발행 대기
+        PUBLISHED, // 발행 완료
+        FAILED // 발행 실패
     }
 }
