@@ -9,7 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "queue")
 public record QueueConfigProperties(
         Active active,
-        Scheduler scheduler
+        Scheduler scheduler,
+        Polling polling
 ) {
     public record Active(
             int maxSize,
@@ -19,5 +20,16 @@ public record QueueConfigProperties(
     public record Scheduler(
             int activationIntervalMs,
             int cleanupIntervalMs
+    ) {}
+
+    public record Polling(
+            long fastIntervalMs,
+            long slowIntervalMs,
+            int fastThreshold,
+            long minIntervalMs,
+            int rateLimitCapacity,
+            int rateLimitRefillTokens,
+            int rateLimitRefillDurationSeconds,
+            int executorPoolSize
     ) {}
 }

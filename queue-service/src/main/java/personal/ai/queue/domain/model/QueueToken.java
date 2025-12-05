@@ -15,6 +15,9 @@ public record QueueToken(
         Instant expiredAt,
         Integer extendCount
 ) {
+    // 상수
+    private static final int INITIAL_EXTEND_COUNT = 0;
+    private static final int MAX_EXTENSION_COUNT = 2;
     /**
      * 대기 중 토큰 생성 (Wait Queue)
      */
@@ -26,7 +29,7 @@ public record QueueToken(
                 QueueStatus.WAITING,
                 position,
                 null,
-                0
+                INITIAL_EXTEND_COUNT
         );
     }
 
@@ -41,7 +44,7 @@ public record QueueToken(
                 QueueStatus.READY,
                 null,
                 expiredAt,
-                0
+                INITIAL_EXTEND_COUNT
         );
     }
 
@@ -94,7 +97,7 @@ public record QueueToken(
      * 연장 가능 여부 확인 (최대 2회)
      */
     public boolean canExtend() {
-        return extendCount != null && extendCount < 2;
+        return extendCount != null && extendCount < MAX_EXTENSION_COUNT;
     }
 
     /**

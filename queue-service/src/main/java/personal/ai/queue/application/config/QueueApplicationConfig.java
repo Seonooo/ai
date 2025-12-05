@@ -15,9 +15,13 @@ public class QueueApplicationConfig {
 
     @Bean
     public QueueConfig queueConfig(QueueConfigProperties properties) {
+        // activation interval을 밀리초에서 초로 변환
+        int activationIntervalSeconds = properties.scheduler().activationIntervalMs() / 1000;
+
         return QueueConfig.of(
                 properties.active().maxSize(),
-                properties.active().tokenTtlSeconds()
+                properties.active().tokenTtlSeconds(),
+                activationIntervalSeconds
         );
     }
 
