@@ -21,21 +21,20 @@ public class ReservationKafkaPublisher implements ReservationEventPublisher {
     private static final String TOPIC_RESERVATION_CONFIRMED = "reservation.confirmed";
     private static final String TOPIC_RESERVATION_CANCELLED = "reservation.cancelled";
     private static final String TOPIC_RESERVATION_EXPIRED = "reservation.expired";
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     @Override
     public void publishRaw(String topic, String key, String payload) {
         log.debug("Publishing raw event: topic={}, key={}", topic, key);
-        // String payload를 그대로 전송
-        kafkaTemplate.send(topic, key, payload)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Failed to publish raw event: topic={}, key={}", topic, key, ex);
-                        throw new RuntimeException("Kafka publish failed", ex);
-                    } else {
-                        log.debug("Raw event published: topic={}, key={}", topic, key);
-                    }
-                });
+        // String payload를 그대로 전송 (StringSerializer 사용)
+        // 동기 방식(join)으로 변환하여 DB 상태 업데이트와 정합성 보장
+        try {
+            kafkaTemplate.send(topic, key, payload).join();
+            log.debug("Raw event published: topic={}, key={}", topic, key);
+        } catch (Exception e) {
+            log.error("Failed to publish raw event: topic={}, key={}", topic, key, e);
+            throw new RuntimeException("Kafka publish failed", e);
+        }
     }
 
     // 아래 메서드들은 Outbox Pattern 도입으로 인해 직접 호출되지 않을 수 있으나,
