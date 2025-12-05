@@ -37,7 +37,7 @@ queue:
 
   # 활성 대기열 설정
   active:
-    max-size: ${QUEUE_ACTIVE_MAX_SIZE:100}  # 동시 처리 가능 인원
+    max-size: ${QUEUE_ACTIVE_MAX_SIZE:50000}  # 동시 처리 가능 인원 (대규모 트래픽 대비)
     token-ttl-seconds: ${QUEUE_ACTIVE_TOKEN_TTL:300}  # 토큰 유효시간 (5분)
 
   # 스케줄러 설정
