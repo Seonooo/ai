@@ -39,7 +39,6 @@ public class BookingService implements
     private final SeatLockRepository seatLockRepository;
     private final ReservationCacheRepository reservationCacheRepository;
     private final QueueServiceClient queueServiceClient;
-    private final ReservationEventPublisher eventPublisher;
     private final BookingManager bookingManager;
 
     @Override
@@ -72,8 +71,10 @@ public class BookingService implements
                     saved.id(),
                     saved.expiresAt());
 
-            // 5. Kafka 이벤트 발행 (트랜잭션 커밋 후)
-            eventPublisher.publishReservationCreated(saved);
+            // 5. Outbox Pattern으로 인해 별도의 명시적 이벤트 발행 호출 불필요
+            // BookingManager -> ReservationPersistenceAdapter 내부에서 Outbox Event가 트랜잭션 내에
+            // 저장됨
+            // OutboxEventScheduler가 이를 감지하여 비동기 발행함.
 
             log.info("Seat reserved successfully: reservationId={}, userId={}, seatId={}",
                     saved.id(), command.userId(), command.seatId());
