@@ -2,7 +2,6 @@ package personal.ai.queue.acceptance.support;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.stereotype.Component;
 import personal.ai.common.test.HealthCheckTestAdapter;
 
@@ -23,9 +22,9 @@ public class QueueHealthCheckTestAdapter implements HealthCheckTestAdapter {
 
     @Override
     public Response callHealthCheckApi() {
-        RestAssured.port = port;
         return RestAssured
                 .given()
+                .port(port)
                 .contentType("application/json")
                 .when()
                 .get("/api/v1/health");

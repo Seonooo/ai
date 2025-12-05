@@ -16,10 +16,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
         ErrorCode errorCode = e.getErrorCode();
-        log.warn("Business exception occurred: code={}, message={}",
-                errorCode.getCode(), e.getMessage());
+        log.warn("Business exception occurred: code={}, message={}, detail={}",
+                errorCode.getCode(), errorCode.getMessage(), e.getMessage());
 
-        ErrorResponse response = ErrorResponse.of(errorCode, e.getMessage());
+        ErrorResponse response = ErrorResponse.of(errorCode, errorCode.getMessage());
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(response);
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse response = ErrorResponse.of(
                 ErrorCode.INTERNAL_SERVER_ERROR,
-                e.getMessage()
+                ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
         );
         return ResponseEntity
                 .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
