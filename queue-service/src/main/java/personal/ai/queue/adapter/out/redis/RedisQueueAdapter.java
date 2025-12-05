@@ -213,7 +213,7 @@ public class RedisQueueAdapter implements QueueRepository {
                 List.of(queueKey),
                 String.valueOf(MIN_SCORE),
                 String.valueOf(now),
-                "queue:active:token:",
+                "active:token:",  // RedisKeyGenerator.ACTIVE_TOKEN_PREFIX와 일치
                 concertId);
 
         if (removedCount != null && removedCount > 0) {

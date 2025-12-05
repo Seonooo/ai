@@ -2,8 +2,11 @@
 -- KEYS[1]: Active Queue Key (ZSet)
 -- ARGV[1]: Min Score (0)
 -- ARGV[2]: Max Score (Current Time Epoch Second)
--- ARGV[3]: Token Key Prefix ("queue:active:token:")
+-- ARGV[3]: Token Key Prefix ("active:token:")
 -- ARGV[4]: ConcertId (for key generation)
+--
+-- Token Key Format: {ARGV[3]}{ARGV[4]}:{userId}
+-- Example: active:token:CONCERT-001:USER-001
 
 -- 1. Get Expired User IDs
 local expiredUserIds = redis.call('ZRANGEBYSCORE', KEYS[1], ARGV[1], ARGV[2])
