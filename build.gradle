@@ -1,62 +1,47 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.12'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '3.4.12' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-group = 'personal'
-version = '0.0.1-SNAPSHOT'
-description = 'ai'
+allprojects {
+    group = 'personal'
+    version = '0.0.1-SNAPSHOT'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    repositories {
+        mavenCentral()
     }
 }
 
-repositories {
-    mavenCentral()
-}
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management'
 
-dependencies {
-    // Spring Boot Starters
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.kafka:spring-kafka'
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-    // Database
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
 
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    testCompileOnly 'org.projectlombok:lombok'
-    testAnnotationProcessor 'org.projectlombok:lombok'
+    dependencies {
+        // Lombok - 모든 모듈에서 사용
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+        testAnnotationProcessor 'org.projectlombok:lombok'
 
-    // Test
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        // Test - 모든 모듈에서 사용
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
 
-    // Cucumber BDD with JUnit 5
-    testImplementation 'io.cucumber:cucumber-java:7.18.1'
-    testImplementation 'io.cucumber:cucumber-spring:7.18.1'
-    testImplementation 'io.cucumber:cucumber-junit-platform-engine:7.18.1'
-    testImplementation 'org.junit.platform:junit-platform-suite:1.10.3'
-
-    // Testcontainers (for integration tests)
-    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:testcontainers:1.19.8'
-    testImplementation 'org.testcontainers:mysql:1.19.8'
-    testImplementation 'org.testcontainers:kafka:1.19.8'
-    testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
-
-    // RestAssured (for API testing)
-    testImplementation 'io.rest-assured:rest-assured:5.4.0'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }

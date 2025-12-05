@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: core-service-test
+
+  # Testcontainers @ServiceConnection이 자동으로 설정
+  # application.properties는 필요 없음
+
+server:
+  port: 0  # 랜덤 포트 사용 (테스트 시)
+
+logging:
+  level:
+    root: INFO
+    personal.ai.core: DEBUG
+    org.testcontainers: INFO
