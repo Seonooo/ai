@@ -19,9 +19,7 @@ public record Seat(
         SeatStatus status
 ) {
     public Seat {
-        if (id == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT, "Seat ID cannot be null");
-        }
+        // ID는 신규 생성 시 null 허용 (DB에서 자동 생성)
         if (scheduleId == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "Schedule ID cannot be null");
         }
@@ -37,6 +35,19 @@ public record Seat(
         if (status == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "Seat status cannot be null");
         }
+    }
+
+    /**
+     * 신규 좌석 생성 (ID 없음)
+     */
+    public static Seat create(
+            Long scheduleId,
+            String seatNumber,
+            SeatGrade grade,
+            BigDecimal price,
+            SeatStatus status
+    ) {
+        return new Seat(null, scheduleId, seatNumber, grade, price, status);
     }
 
     /**

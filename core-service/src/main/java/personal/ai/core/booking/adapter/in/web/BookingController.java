@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import personal.ai.common.dto.ApiResponse;
 import personal.ai.core.booking.adapter.in.web.dto.ReservationResponse;
 import personal.ai.core.booking.adapter.in.web.dto.ReserveSeatRequest;
 import personal.ai.core.booking.adapter.in.web.dto.SeatResponse;
@@ -58,7 +59,7 @@ public class BookingController {
      * POST /api/v1/reservations
      */
     @PostMapping("/reservations")
-    public ResponseEntity<ReservationResponse> reserveSeat(
+    public ResponseEntity<ApiResponse<ReservationResponse>> reserveSeat(
             @Valid @RequestBody ReserveSeatRequest request,
             @RequestHeader("X-User-Id") Long userId,
             @RequestHeader("X-Queue-Token") String queueToken
@@ -70,7 +71,9 @@ public class BookingController {
 
         ReservationResponse response = ReservationResponse.from(reservation);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("좌석이 예약되었습니다.", response));
     }
 
     /**
