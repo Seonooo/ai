@@ -3,6 +3,7 @@ package personal.ai.core.payment.application.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import personal.ai.core.booking.application.port.out.ReservationRepository;
@@ -103,29 +104,49 @@ public class PaymentService implements ProcessPaymentUseCase {
 
     /**
      * PENDING 상태 결제 생성 (Tx1 - 짧은 트랜잭션)
+     * 동시성 제어: DB Unique Constraint로 중복 결제 방지
      */
     @Transactional
     protected Payment createPendingPayment(ProcessPaymentCommand command) {
-        // 기존 결제 확인 (중복 결제 방지)
+        // 기존 결제 확인 (1차 방어)
         paymentRepository.findByReservationId(command.reservationId())
                 .ifPresent(existing -> {
                     if (existing.isCompleted()) {
                         throw new PaymentAlreadyCompletedException(existing.id());
                     }
+                    // PENDING/FAILED 상태도 중복으로 간주 (재결제 시도 방지)
+                    log.warn("Payment already exists for reservation: reservationId={}, status={}",
+                            command.reservationId(), existing.status());
+                    throw new PaymentAlreadyCompletedException(existing.id());
                 });
 
-        // 결제 생성 (PENDING 상태로 먼저 DB 저장)
-        Payment payment = Payment.create(
-                command.reservationId(),
-                command.userId(),
-                command.amount(),
-                command.paymentMethod()
-        );
+        try {
+            // 결제 생성 (PENDING 상태로 먼저 DB 저장)
+            Payment payment = Payment.create(
+                    command.reservationId(),
+                    command.userId(),
+                    command.amount(),
+                    command.paymentMethod()
+            );
 
-        Payment pendingPayment = paymentRepository.save(payment);
-        log.info("Payment created in PENDING state: paymentId={}", pendingPayment.id());
+            Payment pendingPayment = paymentRepository.save(payment);
+            log.info("Payment created in PENDING state: paymentId={}", pendingPayment.id());
 
-        return pendingPayment;
+            return pendingPayment;
+
+        } catch (DataIntegrityViolationException e) {
+            // 2차 방어: DB Unique Constraint 위반 (동시 요청 시)
+            log.error("Duplicate payment detected by DB constraint: reservationId={}",
+                    command.reservationId(), e);
+
+            // 이미 생성된 결제를 조회하여 예외 발생
+            Payment existing = paymentRepository.findByReservationId(command.reservationId())
+                    .orElseThrow(() -> new personal.ai.common.exception.BusinessException(
+                            personal.ai.common.exception.ErrorCode.CONFLICT,
+                            "중복 결제 감지"));
+
+            throw new PaymentAlreadyCompletedException(existing.id());
+        }
     }
 
     /**
