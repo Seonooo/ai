@@ -5,10 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import personal.ai.core.booking.application.port.in.GetAvailableSeatsUseCase;
-import personal.ai.core.booking.application.port.in.GetReservationUseCase;
-import personal.ai.core.booking.application.port.in.ReserveSeatCommand;
-import personal.ai.core.booking.application.port.in.ReserveSeatUseCase;
+import personal.ai.core.booking.application.port.in.*;
 import personal.ai.core.booking.application.port.out.*;
 import personal.ai.core.booking.domain.exception.ConcurrentReservationException;
 import personal.ai.core.booking.domain.exception.ReservationNotFoundException;
@@ -30,7 +27,8 @@ import java.util.List;
 public class BookingService implements
         ReserveSeatUseCase,
         GetAvailableSeatsUseCase,
-        GetReservationUseCase {
+        GetReservationUseCase,
+        ConfirmReservationUseCase {
 
     // Redis 락 TTL (초)
     private static final int SEAT_LOCK_TTL_SECONDS = 300; // 5분
@@ -129,6 +127,43 @@ public class BookingService implements
         }
 
         return reservation;
+    }
+
+    @Override
+    @Transactional
+    public Reservation confirmReservation(ConfirmReservationCommand command) {
+        log.info("Confirming reservation: reservationId={}, userId={}, paymentId={}",
+                command.reservationId(), command.userId(), command.paymentId());
+
+        // 1. 예약 조회
+        Reservation reservation = reservationRepository.findById(command.reservationId())
+                .orElseThrow(() -> new ReservationNotFoundException(command.reservationId()));
+
+        // 2. 소유권 검증
+        if (!reservation.userId().equals(command.userId())) {
+            log.warn("Unauthorized reservation confirmation: reservationId={}, requestUserId={}, ownerUserId={}",
+                    command.reservationId(), command.userId(), reservation.userId());
+            throw new personal.ai.common.exception.BusinessException(
+                    personal.ai.common.exception.ErrorCode.FORBIDDEN,
+                    "해당 예약을 확정할 권한이 없습니다.");
+        }
+
+        // 3. 예약 확정 (PENDING -> CONFIRMED)
+        Reservation confirmedReservation = reservation.confirm();
+        Reservation savedReservation = reservationRepository.save(confirmedReservation);
+
+        // 4. 좌석 점유 (RESERVED -> OCCUPIED)
+        Seat seat = seatRepository.findById(reservation.seatId())
+                .orElseThrow(() -> new personal.ai.core.booking.domain.exception.SeatNotFoundException(
+                        reservation.seatId()));
+
+        Seat occupiedSeat = seat.occupy();
+        seatRepository.save(occupiedSeat);
+
+        log.info("Reservation confirmed and seat occupied: reservationId={}, seatId={}",
+                savedReservation.id(), seat.id());
+
+        return savedReservation;
     }
 
 }
