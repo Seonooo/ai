@@ -106,8 +106,8 @@ public class BookingTestAdapter {
      * 여러 좌석 생성
      *
      * @param scheduleId 스케줄 ID
-     * @param status 좌석 상태
-     * @param count 생성할 좌석 개수
+     * @param status     좌석 상태
+     * @param count      생성할 좌석 개수
      */
     public void createSeats(Long scheduleId, SeatStatus status, int count) {
         log.info(">>> Adapter: {} 상태 좌석 {}개 생성 시작 - scheduleId={}", status, count, scheduleId);
@@ -123,19 +123,17 @@ public class BookingTestAdapter {
      *
      * @param scheduleId 스케줄 ID
      * @param seatNumber 좌석 번호
-     * @param status 좌석 상태
+     * @param status     좌석 상태
      * @return 생성된 좌석 ID
      */
     public Long createSeat(Long scheduleId, String seatNumber, SeatStatus status) {
         SeatEntity seat = SeatEntity.fromDomain(
-            Seat.create(
-                scheduleId,
-                seatNumber,
-                SeatGrade.A,
-                BigDecimal.valueOf(50000),
-                status
-            )
-        );
+                Seat.create(
+                        scheduleId,
+                        seatNumber,
+                        SeatGrade.A,
+                        BigDecimal.valueOf(50000),
+                        status));
         SeatEntity saved = seatRepository.save(seat);
         log.info(">>> Adapter: 좌석 생성 - id={}, number={}, status={}", saved.getId(), seatNumber, status);
         return saved.getId();
@@ -171,24 +169,23 @@ public class BookingTestAdapter {
      * 예약 생성
      *
      * @param reservationId 예약 ID (null이면 자동 생성)
-     * @param userId 사용자 ID
-     * @param seatId 좌석 ID
-     * @param status 예약 상태
+     * @param userId        사용자 ID
+     * @param seatId        좌석 ID
+     * @param status        예약 상태
      * @return 생성된 예약 ID
      */
     public Long createReservation(Long reservationId, Long userId, Long seatId, ReservationStatus status) {
         SeatEntity seat = seatRepository.findById(seatId)
-            .orElseThrow(() -> new IllegalArgumentException("Seat not found: " + seatId));
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found: " + seatId));
 
         // Reservation 생성 (도메인 모델 사용)
         ReservationEntity reservation = ReservationEntity.fromDomain(
-            Reservation.create(
-                userId,
-                seatId,
-                seat.getScheduleId(),
-                5 // TTL: 5 minutes
-            )
-        );
+                Reservation.create(
+                        userId,
+                        seatId,
+                        seat.getScheduleId(),
+                        5 // TTL: 5 minutes
+                ));
 
         // 상태 설정 (필요 시)
         if (status != ReservationStatus.PENDING) {
@@ -201,7 +198,7 @@ public class BookingTestAdapter {
 
         ReservationEntity saved = reservationRepository.save(reservation);
         log.info(">>> Adapter: 예약 생성 - id={}, userId={}, seatId={}, status={}",
-            saved.getId(), userId, seatId, status);
+                saved.getId(), userId, seatId, status);
         return saved.getId();
     }
 
@@ -214,28 +211,27 @@ public class BookingTestAdapter {
      * GET /api/v1/schedules/{scheduleId}/seats
      *
      * @param scheduleId 스케줄 ID
-     * @param userId 사용자 ID
+     * @param userId     사용자 ID
      * @param queueToken 대기열 토큰
      * @return 좌석 목록
      */
     public List<SeatResponse> getAvailableSeats(Long scheduleId, Long userId, String queueToken) {
-        RestAssured.port = getPort();
-        RestAssured.baseURI = BASE_URI;
-
         log.info(">>> Adapter: GET /api/v1/schedules/{}/seats 호출", scheduleId);
 
         List<SeatResponse> response = RestAssured.given()
-            .header("X-User-Id", userId)
-            .header("X-Queue-Token", queueToken)
-            .contentType(ContentType.JSON)
-            .when()
-            .get("/api/v1/schedules/{scheduleId}/seats", scheduleId)
-            .then()
-            .statusCode(200)
-            .extract()
-            .body()
-            .jsonPath()
-            .getList(".", SeatResponse.class);
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .header("X-Queue-Token", queueToken)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/api/v1/schedules/{scheduleId}/seats", scheduleId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .body()
+                .jsonPath()
+                .getList(".", SeatResponse.class);
 
         log.info(">>> Adapter: 좌석 조회 성공 - count={}", response.size());
         return response;
@@ -246,43 +242,41 @@ public class BookingTestAdapter {
      * POST /api/v1/reservations
      *
      * @param scheduleId 스케줄 ID
-     * @param seatId 좌석 ID
-     * @param userId 사용자 ID
+     * @param seatId     좌석 ID
+     * @param userId     사용자 ID
      * @param queueToken 대기열 토큰
      * @return 예약 응답
      */
     public ReservationResponse reserveSeat(Long scheduleId, Long seatId, Long userId, String queueToken) {
-        RestAssured.port = getPort();
-        RestAssured.baseURI = BASE_URI;
-
         log.info(">>> Adapter: POST /api/v1/reservations 호출 - scheduleId={}, seatId={}", scheduleId, seatId);
 
         ReserveSeatRequest request = new ReserveSeatRequest(scheduleId, seatId);
 
         Map<String, Object> response = RestAssured.given()
-            .header("X-User-Id", userId)
-            .header("X-Queue-Token", queueToken)
-            .contentType(ContentType.JSON)
-            .body(request)
-            .when()
-            .post("/api/v1/reservations")
-            .then()
-            .statusCode(201)
-            .extract()
-            .body()
-            .as(Map.class);
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .header("X-Queue-Token", queueToken)
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post("/api/v1/reservations")
+                .then()
+                .statusCode(201)
+                .extract()
+                .body()
+                .as(Map.class);
 
         Map<String, Object> data = (Map<String, Object>) response.get("data");
 
         ReservationResponse reservationResponse = new ReservationResponse(
-            ((Number) data.get("reservationId")).longValue(),
-            ((Number) data.get("userId")).longValue(),
-            ((Number) data.get("seatId")).longValue(),
-            ((Number) data.get("scheduleId")).longValue(),
-            ReservationStatus.valueOf((String) data.get("status")),
-            data.get("expiresAt") != null ? java.time.LocalDateTime.parse((String) data.get("expiresAt")) : null,
-            data.get("createdAt") != null ? java.time.LocalDateTime.parse((String) data.get("createdAt")) : null
-        );
+                ((Number) data.get("reservationId")).longValue(),
+                ((Number) data.get("userId")).longValue(),
+                ((Number) data.get("seatId")).longValue(),
+                ((Number) data.get("scheduleId")).longValue(),
+                ReservationStatus.valueOf((String) data.get("status")),
+                data.get("expiresAt") != null ? java.time.LocalDateTime.parse((String) data.get("expiresAt")) : null,
+                data.get("createdAt") != null ? java.time.LocalDateTime.parse((String) data.get("createdAt")) : null);
 
         log.info(">>> Adapter: 예약 성공 - reservationId={}", reservationResponse.reservationId());
         return reservationResponse;
@@ -293,25 +287,24 @@ public class BookingTestAdapter {
      * GET /api/v1/reservations/{reservationId}
      *
      * @param reservationId 예약 ID
-     * @param userId 사용자 ID
+     * @param userId        사용자 ID
      * @return 예약 응답
      */
     public ReservationResponse getReservation(Long reservationId, Long userId) {
-        RestAssured.port = getPort();
-        RestAssured.baseURI = BASE_URI;
-
         log.info(">>> Adapter: GET /api/v1/reservations/{} 호출", reservationId);
 
         ReservationResponse response = RestAssured.given()
-            .header("X-User-Id", userId)
-            .contentType(ContentType.JSON)
-            .when()
-            .get("/api/v1/reservations/{reservationId}", reservationId)
-            .then()
-            .statusCode(200)
-            .extract()
-            .body()
-            .as(ReservationResponse.class);
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/api/v1/reservations/{reservationId}", reservationId)
+                .then()
+                .statusCode(200)
+                .extract()
+                .body()
+                .as(ReservationResponse.class);
 
         log.info(">>> Adapter: 예약 조회 성공 - reservationId={}", reservationId);
         return response;
@@ -322,53 +315,50 @@ public class BookingTestAdapter {
      * POST /api/v1/payments
      *
      * @param reservationId 예약 ID
-     * @param userId 사용자 ID
+     * @param userId        사용자 ID
      * @return 결제 응답
      */
     public PaymentResponse processPayment(Long reservationId, Long userId) {
-        RestAssured.port = getPort();
-        RestAssured.baseURI = BASE_URI;
-
         log.info(">>> Adapter: POST /api/v1/payments 호출 - reservationId={}", reservationId);
 
         // 예약 정보 조회
         ReservationEntity reservation = reservationRepository.findById(reservationId)
-            .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
 
         SeatEntity seat = seatRepository.findById(reservation.getSeatId())
-            .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
 
         ProcessPaymentRequest request = new ProcessPaymentRequest(
-            reservationId,
-            userId,
-            seat.getPrice(),
-            "CREDIT_CARD",
-            "CONCERT-001"
-        );
+                reservationId,
+                userId,
+                seat.getPrice(),
+                "CREDIT_CARD",
+                "CONCERT-001");
 
         Map<String, Object> response = RestAssured.given()
-            .contentType(ContentType.JSON)
-            .body(request)
-            .when()
-            .post("/api/v1/payments")
-            .then()
-            .statusCode(201)
-            .extract()
-            .body()
-            .as(Map.class);
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post("/api/v1/payments")
+                .then()
+                .statusCode(201)
+                .extract()
+                .body()
+                .as(Map.class);
 
         Map<String, Object> data = (Map<String, Object>) response.get("data");
 
         PaymentResponse paymentResponse = new PaymentResponse(
-            ((Number) data.get("paymentId")).longValue(),
-            ((Number) data.get("reservationId")).longValue(),
-            ((Number) data.get("userId")).longValue(),
-            new BigDecimal(data.get("amount").toString()),
-            personal.ai.core.payment.domain.model.PaymentStatus.valueOf((String) data.get("status")),
-            (String) data.get("paymentMethod"),
-            data.get("paidAt") != null ? java.time.LocalDateTime.parse((String) data.get("paidAt")) : null,
-            data.get("createdAt") != null ? java.time.LocalDateTime.parse((String) data.get("createdAt")) : null
-        );
+                ((Number) data.get("paymentId")).longValue(),
+                ((Number) data.get("reservationId")).longValue(),
+                ((Number) data.get("userId")).longValue(),
+                new BigDecimal(data.get("amount").toString()),
+                personal.ai.core.payment.domain.model.PaymentStatus.valueOf((String) data.get("status")),
+                (String) data.get("paymentMethod"),
+                data.get("paidAt") != null ? java.time.LocalDateTime.parse((String) data.get("paidAt")) : null,
+                data.get("createdAt") != null ? java.time.LocalDateTime.parse((String) data.get("createdAt")) : null);
 
         log.info(">>> Adapter: 결제 성공 - paymentId={}", paymentResponse.paymentId());
         return paymentResponse;
@@ -386,7 +376,7 @@ public class BookingTestAdapter {
      */
     public SeatStatus getSeatStatus(Long seatId) {
         SeatEntity seat = seatRepository.findById(seatId)
-            .orElseThrow(() -> new IllegalArgumentException("Seat not found: " + seatId));
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found: " + seatId));
         log.info(">>> Adapter: 좌석 상태 조회 - seatId={}, status={}", seatId, seat.getStatus());
         return seat.getStatus();
     }
@@ -399,7 +389,7 @@ public class BookingTestAdapter {
      */
     public ReservationStatus getReservationStatus(Long reservationId) {
         ReservationEntity reservation = reservationRepository.findById(reservationId)
-            .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
         log.info(">>> Adapter: 예약 상태 조회 - reservationId={}, status={}", reservationId, reservation.getStatus());
         return reservation.getStatus();
     }
@@ -408,15 +398,15 @@ public class BookingTestAdapter {
      * Outbox 이벤트 존재 확인
      *
      * @param paymentId 결제 ID
-     * @param status Outbox 이벤트 상태
+     * @param status    Outbox 이벤트 상태
      * @return 이벤트 존재 여부
      */
     public boolean verifyOutboxEventExists(Long paymentId, String status) {
         log.info(">>> Adapter: Outbox 이벤트 검증 - paymentId={}, status={}", paymentId, status);
         List<PaymentOutboxEventEntity> events = outboxRepository.findAll();
         boolean exists = events.stream()
-            .anyMatch(e -> e.getAggregateId().equals(paymentId)
-                && e.getStatus().name().equals(status));
+                .anyMatch(e -> e.getAggregateId().equals(paymentId)
+                        && e.getStatus().name().equals(status));
         log.info(">>> Adapter: Outbox 이벤트 존재 여부 - {}", exists);
         return exists;
     }
@@ -431,9 +421,9 @@ public class BookingTestAdapter {
         log.info(">>> Adapter: Outbox 이벤트 페이로드 검증 - paymentId={}", paymentId);
         List<PaymentOutboxEventEntity> events = outboxRepository.findAll();
         boolean hasPayload = events.stream()
-            .anyMatch(e -> e.getAggregateId().equals(paymentId)
-                && e.getPayload() != null
-                && !e.getPayload().isEmpty());
+                .anyMatch(e -> e.getAggregateId().equals(paymentId)
+                        && e.getPayload() != null
+                        && !e.getPayload().isEmpty());
         log.info(">>> Adapter: Outbox 이벤트 페이로드 존재 여부 - {}", hasPayload);
         return hasPayload;
     }
