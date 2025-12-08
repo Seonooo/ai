@@ -45,7 +45,8 @@ public class PaymentMockService {
             log.warn("Mock payment delay interrupted", e);
         }
 
-        // 80% 성공, 20% 실패
+        // Happy path: 100% 성공
+        // 추후 100%에서 확률 수정을 위해 남겨둠
         boolean success = random.nextDouble() < SUCCESS_RATE;
 
         if (success) {

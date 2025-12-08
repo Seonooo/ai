@@ -235,8 +235,6 @@ src/test/resources/features
 
 ---
 
-## 9. Security Conventions
-
 ## 9. Security Conventions (Mock)
 
 ### 9.1 Mock Authentication Strategy (MVP)

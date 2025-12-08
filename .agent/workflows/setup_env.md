@@ -12,7 +12,7 @@ This workflow sets up the necessary infrastructure (MySQL, Redis, Kafka) for the
 docker-compose up -d
 ```
 
-3. (Optional) Check running containers
+2. (Optional) Check running containers
 ```bash
 docker ps
 ```

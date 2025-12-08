@@ -64,9 +64,9 @@ docker-compose up -d
 **Cucumber**와 **RestAssured**를 활용한 사용자 시나리오 기반의 블랙박스(Black-box) 테스트입니다.
 
 - **Key Features:**
-  - **BDD Style:** 비즈니스 언어(Gherkin)로 작성된 시나리오 검증
-  - **Concurrency:** Java 21 **Virtual Threads**를 활용한 대규모 동시성 시나리오 포함
-  - **Isolation:** **Testcontainers** (Redis, MySQL)를 활용한 완벽한 격리 환경
+    - **BDD Style:** 비즈니스 언어(Gherkin)로 작성된 시나리오 검증
+    - **Concurrency:** Java 21 **Virtual Threads**를 활용한 대규모 동시성 시나리오 포함
+    - **Isolation:** **Testcontainers** (Redis, MySQL)를 활용한 완벽한 격리 환경
 
 ```bash
 # 전체 테스트 실행 (Unit + Integration + Acceptance)

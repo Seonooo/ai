@@ -252,11 +252,11 @@ src/test/
 
 ---
 
-## 3. Booking Service 인수 테스트 설계
+## 6. Booking Service 인수 테스트 설계
 
 Booking Service 역시 Queue Service와 동일한 철학을 따르되, 복잡한 데이터 의존성을 해결하기 위해 **Two-Adapter Pattern**을 명시적으로 도입한다.
 
-### 3.1 Adapter 역할 분리 (Two-Adapter Pattern)
+### 6.1 Adapter 역할 분리 (Two-Adapter Pattern)
 
 | Adapter | 역할 | 사용 예시 | 의존성 |
 |:---|:---|:---|:---|
@@ -268,7 +268,7 @@ Booking Service 역시 Queue Service와 동일한 철학을 따르되, 복잡한
         - `HttpAdapter`는 사용자 관점(Black-box)이며, 내부 DB 구조를 몰라야 한다.
         - `TestAdapter`는 테스트 관점(White-box)이며, 효율적인 테스트를 위해 백도어가 필요하다.
 
-### 3.2 테스트 안정성 확보
+### 6.2 테스트 안정성 확보
 
 - **RestAssured 설정:**
     - Static 설정(`RestAssured.port = ...`)을 금지하고, **매 요청마다 Builder 패턴**으로 포트를 명시한다.
