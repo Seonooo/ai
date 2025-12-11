@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import personal.ai.common.exception.KafkaPublishException;
 import personal.ai.core.payment.application.port.out.PaymentEventPublisher;
 import personal.ai.core.payment.domain.model.Payment;
 
@@ -43,8 +44,7 @@ public class PaymentKafkaPublisher implements PaymentEventPublisher {
                 payment.reservationId().toString(),
                 payment.id().toString(),
                 payment.amount().longValue(),
-                Instant.now()
-        );
+                Instant.now());
 
         try {
             // JSON 직렬화
@@ -58,13 +58,11 @@ public class PaymentKafkaPublisher implements PaymentEventPublisher {
                     event.toLogString());
 
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize payment completed event: paymentId={}",
-                    payment.id(), e);
-            throw new RuntimeException("Failed to publish payment event", e);
+            log.error("Failed to serialize payment event: paymentId={}", payment.id(), e);
+            throw KafkaPublishException.publishFailed(paymentCompletedTopic, e);
         } catch (Exception e) {
-            log.error("Failed to publish payment completed event: paymentId={}",
-                    payment.id(), e);
-            throw new RuntimeException("Failed to publish payment event", e);
+            log.error("Failed to publish payment event: paymentId={}", payment.id(), e);
+            throw KafkaPublishException.publishFailed(paymentCompletedTopic, e);
         }
     }
 
@@ -79,7 +77,7 @@ public class PaymentKafkaPublisher implements PaymentEventPublisher {
             log.debug("Raw payment event published: topic={}, key={}", topic, key);
         } catch (Exception e) {
             log.error("Failed to publish raw payment event: topic={}, key={}", topic, key, e);
-            throw new RuntimeException("Kafka publish failed", e);
+            throw KafkaPublishException.publishFailed(topic, e);
         }
     }
 }

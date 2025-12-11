@@ -34,6 +34,7 @@ public enum ErrorCode {
     PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "P001", "결제에 실패했습니다."),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "P002", "잔액이 부족합니다."),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "P003", "결제 정보를 찾을 수 없습니다."),
+    PAYMENT_IN_PROGRESS(HttpStatus.CONFLICT, "P004", "이미 진행 중인 결제가 있습니다."),
 
     // Queue Domain (5xxx)
     QUEUE_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "대기열 토큰을 찾을 수 없습니다."),
@@ -45,7 +46,8 @@ public enum ErrorCode {
     // External Service (6xxx)
     EXTERNAL_SERVICE_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "E001", "외부 서비스 오류가 발생했습니다."),
     EXTERNAL_SERVICE_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "E002", "외부 서비스 응답 시간 초과입니다."),
-    QUEUE_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "E003", "대기열 서비스를 일시적으로 사용할 수 없습니다.");
+    QUEUE_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "E003", "대기열 서비스를 일시적으로 사용할 수 없습니다."),
+    QUEUE_DATA_CORRUPTION(HttpStatus.INTERNAL_SERVER_ERROR, "E004", "대기열 데이터 무결성 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -9,6 +9,7 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import personal.ai.common.exception.EventProcessingException;
 import personal.ai.core.booking.application.port.in.ConfirmReservationUseCase;
 import personal.ai.core.payment.adapter.out.kafka.PaymentCompletedEvent;
 
@@ -21,67 +22,50 @@ import personal.ai.core.payment.adapter.out.kafka.PaymentCompletedEvent;
 @RequiredArgsConstructor
 public class PaymentEventConsumer {
 
-    private final ConfirmReservationUseCase confirmReservationUseCase;
-    private final ObjectMapper objectMapper;
+        private final ConfirmReservationUseCase confirmReservationUseCase;
+        private final ObjectMapper objectMapper;
 
-    /**
-     * 결제 완료 이벤트 처리
-     * Topic: booking.payment.completed
-     *
-     * 처리 내용:
-     * 1. 예약 상태를 PENDING -> CONFIRMED로 변경
-     * 2. 좌석 상태를 RESERVED -> OCCUPIED로 변경
-     * 3. Queue Service는 별도로 이 이벤트를 구독하여 Active Queue에서 유저 제거
-     */
-    @KafkaListener(
-            topics = "${kafka.topic.payment-completed:booking.payment.completed}",
-            groupId = "${spring.kafka.consumer.group-id}",
-            containerFactory = "kafkaListenerContainerFactory"
-    )
-    public void handlePaymentCompleted(
-            @Payload String message,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
+        /**
+         * 결제 완료 이벤트 처리
+         * Topic: booking.payment.completed
+         *
+         * 처리 내용:
+         * 1. 예약 상태를 PENDING -> CONFIRMED로 변경
+         * 2. 좌석 상태를 RESERVED -> OCCUPIED로 변경
+         * 3. Queue Service는 별도로 이 이벤트를 구독하여 Active Queue에서 유저 제거
+         */
+        @KafkaListener(topics = "${kafka.topic.payment-completed:booking.payment.completed}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "kafkaListenerContainerFactory")
+        public void handlePaymentCompleted(
+                        @Payload String message,
+                        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                        @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+                        @Header(KafkaHeaders.OFFSET) long offset,
+                        Acknowledgment acknowledgment) {
 
-        try {
-            log.info("Received payment completed event: topic={}, partition={}, offset={}",
-                    topic, partition, offset);
+                try {
+                        log.info("Received payment completed event: topic={}, partition={}, offset={}",
+                                        topic, partition, offset);
 
-            // JSON 역직렬화
-            PaymentCompletedEvent event = objectMapper.readValue(
-                    message,
-                    PaymentCompletedEvent.class
-            );
+                        var event = objectMapper.readValue(message, PaymentCompletedEvent.class);
+                        log.info("Processing payment completed event: {}", event.toLogString());
 
-            log.info("Processing payment completed event: {}", event.toLogString());
+                        var command = new ConfirmReservationUseCase.ConfirmReservationCommand(
+                                        Long.parseLong(event.reservationId()),
+                                        Long.parseLong(event.userId()),
+                                        Long.parseLong(event.paymentId()));
 
-            // 예약 확정 및 좌석 점유
-            ConfirmReservationUseCase.ConfirmReservationCommand command =
-                    new ConfirmReservationUseCase.ConfirmReservationCommand(
-                            Long.parseLong(event.reservationId()),
-                            Long.parseLong(event.userId()),
-                            Long.parseLong(event.paymentId())
-                    );
+                        confirmReservationUseCase.confirmReservation(command);
 
-            confirmReservationUseCase.confirmReservation(command);
+                        log.info("Reservation confirmed: reservationId={}", event.reservationId());
 
-            log.info("Reservation confirmed successfully: reservationId={}, userId={}",
-                    event.reservationId(), event.userId());
+                        if (acknowledgment != null) {
+                                acknowledgment.acknowledge();
+                        }
 
-            // Manual Ack (처리 완료 확인)
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to process payment completed event: topic={}, partition={}, offset={}",
-                    topic, partition, offset, e);
-
-            // 에러 발생 시 Ack하지 않음 -> 재처리
-            // 또는 DLQ(Dead Letter Queue)로 전송
-            throw new RuntimeException("Payment event processing failed", e);
+                } catch (Exception e) {
+                        log.error("Failed to process payment event: topic={}, partition={}, offset={}",
+                                        topic, partition, offset, e);
+                        throw EventProcessingException.processingFailed("PAYMENT_COMPLETED", e);
+                }
         }
-    }
 }
