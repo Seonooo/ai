@@ -17,12 +17,14 @@ import personal.ai.queue.adapter.in.web.dto.QueueTokenResponse;
 import personal.ai.queue.application.port.in.MoveToActiveQueueUseCase;
 import personal.ai.queue.domain.model.QueueStatus;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Queue Service API 인수 테스트 Step Definitions
@@ -33,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @ScenarioScope: 각 시나리오마다 새로운 인스턴스를 생성하여 테스트 격리를 보장합니다.
  *                 이를 통해 시나리오 간 상태 공유 문제를 방지하고, 병렬 실행 시에도 안전합니다.
  *                 Cucumber-Spring이 step definition 클래스의 생명주기를 관리하므로
- *                 @Component 어노테이션은 사용하지 않습니다.
+ * @Component 어노테이션은 사용하지 않습니다.
  *
  * @author AI Queue Team
  */
@@ -220,8 +222,8 @@ public class QueueSteps {
         // 성공 시 응답 데이터 저장
         if (lastResponse.getStatusCode() == HttpStatus.CREATED) {
             @SuppressWarnings("unchecked")
-            ApiResponse<QueuePositionResponse> apiResponse =
-                    (ApiResponse<QueuePositionResponse>) lastResponse.getBody();
+            ApiResponse<QueuePositionResponse> apiResponse = (ApiResponse<QueuePositionResponse>) lastResponse
+                    .getBody();
             lastPosition = apiResponse.data();
         }
     }
@@ -246,9 +248,8 @@ public class QueueSteps {
             multipleUserIds.add(userId);
 
             // 비동기로 API 호출
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() ->
-                    queueAdapter.enterQueue(currentConcertId, userId)
-            );
+            CompletableFuture<Void> future = CompletableFuture
+                    .runAsync(() -> queueAdapter.enterQueue(currentConcertId, userId));
             futures.add(future);
         }
 
@@ -343,12 +344,13 @@ public class QueueSteps {
         // Kafka 이벤트 발행
         queueAdapter.publishPaymentCompletedEvent(currentConcertId, currentUserId);
 
-        // 이벤트 처리 대기 (비동기 처리 시간 확보)
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // 이벤트 처리 완료 대기 (조건 기반 - Awaitility)
+        await().atMost(Duration.ofSeconds(3))
+                .pollInterval(Duration.ofMillis(100))
+                .untilAsserted(() -> {
+                    QueueTokenResponse status = queueAdapter.getQueueStatus(currentConcertId, currentUserId);
+                    assertThat(status.status()).isEqualTo(QueueStatus.NOT_FOUND);
+                });
     }
 
     /**
