@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import personal.ai.common.exception.OutboxEventException;
 import personal.ai.core.payment.adapter.out.kafka.PaymentCompletedEvent;
 import personal.ai.core.payment.adapter.out.persistence.PaymentOutboxEventEntity;
 import personal.ai.core.payment.application.port.out.PaymentEventPort;
@@ -50,7 +51,7 @@ public class PaymentEventAdapter implements PaymentEventPort {
 
         } catch (Exception e) {
             log.error("Failed to publish payment event: paymentId={}", payment.id(), e);
-            throw new RuntimeException("Failed to publish payment event", e);
+            throw OutboxEventException.saveFailed(payment.id(), e);
         }
     }
 }

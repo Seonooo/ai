@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import personal.ai.common.exception.KafkaPublishException;
 import personal.ai.core.booking.application.port.out.ReservationEventPublisher;
 import personal.ai.core.booking.domain.model.Reservation;
 
@@ -26,14 +27,12 @@ public class ReservationKafkaPublisher implements ReservationEventPublisher {
     @Override
     public void publishRaw(String topic, String key, String payload) {
         log.debug("Publishing raw event: topic={}, key={}", topic, key);
-        // String payload를 그대로 전송 (StringSerializer 사용)
-        // 동기 방식(join)으로 변환하여 DB 상태 업데이트와 정합성 보장
         try {
             kafkaTemplate.send(topic, key, payload).join();
             log.debug("Raw event published: topic={}, key={}", topic, key);
         } catch (Exception e) {
             log.error("Failed to publish raw event: topic={}, key={}", topic, key, e);
-            throw new RuntimeException("Kafka publish failed", e);
+            throw KafkaPublishException.publishFailed(topic, e);
         }
     }
 

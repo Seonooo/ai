@@ -3,6 +3,7 @@ package personal.ai.core.booking.adapter.out.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import personal.ai.common.exception.OutboxEventException;
 import personal.ai.core.booking.adapter.out.persistence.JpaOutboxEventRepository;
 import personal.ai.core.booking.adapter.out.persistence.OutboxEventEntity;
 import personal.ai.core.booking.adapter.out.persistence.OutboxEventFactory;
@@ -37,7 +38,7 @@ public class ReservationEventAdapter implements ReservationEventPort {
 
         } catch (Exception e) {
             log.error("Failed to publish reservation event: reservationId={}", reservation.id(), e);
-            throw new RuntimeException("Failed to publish reservation event", e);
+            throw OutboxEventException.saveFailed(reservation.id(), e);
         }
     }
 }

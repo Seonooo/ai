@@ -39,23 +39,18 @@ public class QueueServiceRestClientAdapter implements QueueServiceClient {
     public void validateToken(Long userId, String queueToken) {
         log.debug("Validating queue token: userId={}", userId);
 
-        try {
-            queueServiceRestClient.get()
-                    .uri("/api/v1/queue/validate")
-                    .header("X-Queue-Token", queueToken)
-                    .header("X-User-Id", String.valueOf(userId))
-                    .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
-                        log.warn("Queue token validation failed: status={}", response.getStatusCode());
-                        throw new QueueTokenInvalidException();
-                    })
-                    .toBodilessEntity();
+        queueServiceRestClient.get()
+                .uri("/api/v1/queue/validate")
+                .header("X-Queue-Token", queueToken)
+                .header("X-User-Id", String.valueOf(userId))
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (request, response) -> {
+                    log.warn("Queue token validation failed: status={}", response.getStatusCode());
+                    throw new QueueTokenInvalidException();
+                })
+                .toBodilessEntity();
 
-            log.debug("Queue token validated successfully");
-
-        } catch (QueueTokenInvalidException e) {
-            throw e;
-        }
+        log.debug("Queue token validated successfully");
     }
 
     /**
