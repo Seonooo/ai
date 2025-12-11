@@ -135,9 +135,14 @@ public record Reservation(
      * 요청한 사용자가 예약의 소유자인지 확인
      *
      * @param requestUserId 요청 사용자 ID
+     * @throws BusinessException requestUserId가 null인 경우
      * @throws ReservationAccessDeniedException 소유권 불일치 시
      */
     public void ensureOwnership(Long requestUserId) {
+        if (requestUserId == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT, "Request user ID cannot be null");
+        }
+
         if (!this.userId.equals(requestUserId)) {
             throw new ReservationAccessDeniedException();
         }

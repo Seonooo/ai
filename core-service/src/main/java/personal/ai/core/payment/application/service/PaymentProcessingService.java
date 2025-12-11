@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import personal.ai.common.exception.BusinessException;
+import personal.ai.common.exception.ErrorCode;
 import personal.ai.core.payment.application.port.in.ProcessPaymentUseCase;
 import personal.ai.core.payment.application.port.out.PaymentRepository;
 import personal.ai.core.payment.application.port.out.PaymentResultHandlerPort;
@@ -49,8 +51,16 @@ public class PaymentProcessingService implements ProcessPaymentUseCase {
 
         // 4. 결과 처리 (Port 위임)
         if (paymentSuccess) {
-            return transactionTemplate
+            var completedPayment = transactionTemplate
                     .execute(status -> paymentResultHandlerPort.handleSuccess(pendingPayment, command.concertId()));
+
+            if (completedPayment == null) {
+                log.error("Payment result handler returned null: paymentId={}", pendingPayment.id());
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to handle payment success");
+            }
+
+            return completedPayment;
         } else {
             transactionTemplate.execute(status -> {
                 paymentResultHandlerPort.handleFailure(pendingPayment, reservation, command.userId());
@@ -75,6 +85,13 @@ public class PaymentProcessingService implements ProcessPaymentUseCase {
                 command.paymentMethod());
 
         var pendingPayment = paymentRepository.save(payment);
+
+        if (pendingPayment == null) {
+            log.error("Payment repository returned null: reservationId={}", command.reservationId());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR,
+                "Failed to create pending payment");
+        }
+
         log.debug("Payment created: paymentId={}", pendingPayment.id());
 
         return pendingPayment;

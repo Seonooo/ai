@@ -128,7 +128,8 @@ public record QueueToken(
      * @throws QueueTokenExpiredException 만료된 토큰
      */
     public void ensureValidFor(String requestedToken) {
-        if (!this.token.equals(requestedToken)) {
+        // Null check: this.token or requestedToken이 null이면 토큰 불일치
+        if (this.token == null || requestedToken == null || !this.token.equals(requestedToken)) {
             throw new QueueTokenInvalidException(concertId, userId);
         }
 
