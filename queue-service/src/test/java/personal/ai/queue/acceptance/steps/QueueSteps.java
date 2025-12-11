@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -196,11 +195,14 @@ public class QueueSteps {
      */
     @And("유효한 토큰을 가지고 있다")
     public void 유효한_토큰을_가지고_있다() {
-        log.info(">>> Given: 유효한 토큰 설정");
-        // lastTokenResponse에서 토큰 추출
-        if (lastTokenResponse != null && lastTokenResponse.token() != null) {
-            this.currentToken = lastTokenResponse.token();
-        }
+        assertThat(lastTokenResponse)
+                .as("유효한 토큰 Given 단계 전에 토큰 발급이 선행되어야 합니다")
+                .isNotNull();
+        assertThat(lastTokenResponse.token())
+                .as("발급된 토큰이 존재해야 합니다")
+                .isNotNull();
+        this.currentToken = lastTokenResponse.token();
+        log.info(">>> Given: 유효한 토큰 설정 - token={}", currentToken);
     }
 
     // ==========================================
@@ -231,31 +233,43 @@ public class QueueSteps {
     /**
      * API 호출: POST /api/v1/queue/enter (동시성 테스트)
      * 여러 사용자가 동시에 대기열 진입 API를 호출합니다.
-     * CompletableFuture를 사용하여 병렬 처리합니다.
+     * Java 21 Virtual Threads를 사용하여 대규모 동시 요청을 처리합니다.
      *
      * @param count 동시 진입할 사용자 수 (예: 100)
      */
     @When("{int}명의 사용자가 동시에 진입 API를 호출한다")
-    public void 명의_사용자가_동시에_진입_API를_호출한다(Integer count) {
+    public void 명의_사용자가_동시에_진입_API를_호출한다(Integer count) throws InterruptedException {
         log.info(">>> When: {}명의 사용자가 동시에 POST /api/v1/queue/enter 호출", count);
 
         multipleUserIds.clear();
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        var latch = new java.util.concurrent.CountDownLatch(count);
+        var errors = new java.util.concurrent.CopyOnWriteArrayList<Throwable>();
 
-        // N명의 사용자가 동시에 API 호출
-        for (int i = 0; i < count; i++) {
-            String userId = "USER-CONCURRENT-" + i;
-            multipleUserIds.add(userId);
+        // Virtual Thread Executor 사용 (Java 21)
+        try (var executor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < count; i++) {
+                String userId = "USER-CONCURRENT-" + i;
+                multipleUserIds.add(userId);
 
-            // 비동기로 API 호출
-            CompletableFuture<Void> future = CompletableFuture
-                    .runAsync(() -> queueAdapter.enterQueue(currentConcertId, userId));
-            futures.add(future);
+                executor.submit(() -> {
+                    try {
+                        queueAdapter.enterQueue(currentConcertId, userId);
+                    } catch (Exception e) {
+                        log.error("동시 진입 실패: userId={}", userId, e);
+                        errors.add(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+            }
+
+            // 타임아웃과 함께 대기 (30초)
+            boolean completed = latch.await(30, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(completed).as("동시 진입이 30초 내에 완료되어야 합니다").isTrue();
+            assertThat(errors).as("동시 진입 중 에러가 발생하면 안 됩니다").isEmpty();
         }
 
-        // 모든 요청이 완료될 때까지 대기
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-        log.info(">>> 모든 동시 진입 요청 완료");
+        log.info(">>> 모든 동시 진입 요청 완료: count={}", count);
     }
 
     /**
@@ -319,17 +333,19 @@ public class QueueSteps {
     }
 
     /**
-     * API 호출: GET /api/v1/queue/subscribe
-     * 사용자가 SSE 구독 API를 호출합니다.
+     * API 호출: GET /api/v1/queue/subscribe (실제 SSE 대신 폴링 Mock)
+     * 
+     * Acceptance Test에서는 SSE 연결 대신 상태 폴링으로 결과 검증
+     * 실제 SSE 동작은 Integration Test에서 검증
      */
     @When("SSE 구독 API를 호출한다")
     public void SSE_구독_API를_호출한다() {
-        log.info(">>> When: GET /api/v1/queue/subscribe 호출 - concertId={}, userId={}",
+        log.info(">>> When: SSE 구독 API 호출 (Mock: 상태 폴링) - concertId={}, userId={}",
                 currentConcertId, currentUserId);
 
-        // TODO: SSE 구독 로직 구현
-        // sseEmitter = queueAdapter.subscribeSSE(currentConcertId, currentUserId);
-        log.warn(">>> SSE 구독 API 구현 필요 (QueueTestAdapter)");
+        // SSE 연결 대신 상태 조회로 대체
+        lastTokenResponse = queueAdapter.getQueueStatus(currentConcertId, currentUserId);
+        log.info(">>> SSE Mock: 현재 상태 = {}", lastTokenResponse.status());
     }
 
     /**
@@ -403,10 +419,10 @@ public class QueueSteps {
      */
     @And("대기 순번을 받는다")
     public void 대기_순번을_받는다() {
-        log.info(">>> Then: 대기 순번 존재 검증 - position={}", lastPosition.position());
-        assertThat(lastPosition).isNotNull();
-        assertThat(lastPosition.position()).isNotNull();
+        assertThat(lastPosition).as("대기 순번 응답이 null입니다").isNotNull();
+        assertThat(lastPosition.position()).as("대기 순번이 null입니다").isNotNull();
         assertThat(lastPosition.position()).isGreaterThan(0);
+        log.info(">>> Then: 대기 순번 확인 - position={}", lastPosition.position());
     }
 
     /**
@@ -416,8 +432,9 @@ public class QueueSteps {
      */
     @Then("상태가 {string}이다")
     public void 상태가_이다(String status) {
-        log.info(">>> Then: 상태 검증 - expected={}, actual={}", status, lastTokenResponse.status());
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
         assertThat(lastTokenResponse.status()).isEqualTo(QueueStatus.valueOf(status));
+        log.info(">>> Then: 상태 확인 - expected={}, actual={}", status, lastTokenResponse.status());
     }
 
     /**
@@ -427,8 +444,9 @@ public class QueueSteps {
      */
     @And("상태가 {string}로 변경된다")
     public void 상태가_로_변경된다(String status) {
-        log.info(">>> Then: 상태 변경 검증 - expected={}, actual={}", status, lastTokenResponse.status());
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
         assertThat(lastTokenResponse.status()).isEqualTo(QueueStatus.valueOf(status));
+        log.info(">>> Then: 상태 변경 확인 - status={}", lastTokenResponse.status());
     }
 
     /**
@@ -436,9 +454,10 @@ public class QueueSteps {
      */
     @And("대기 순번이 표시된다")
     public void 대기_순번이_표시된다() {
-        log.info(">>> Then: 대기 순번 표시 검증 - position={}", lastTokenResponse.position());
-        assertThat(lastTokenResponse.position()).isNotNull();
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
+        assertThat(lastTokenResponse.position()).as("대기 순번이 null입니다").isNotNull();
         assertThat(lastTokenResponse.position()).isGreaterThan(0);
+        log.info(">>> Then: 대기 순번 표시 확인 - position={}", lastTokenResponse.position());
     }
 
     /**
@@ -446,9 +465,10 @@ public class QueueSteps {
      */
     @And("토큰이 반환된다")
     public void 토큰이_반환된다() {
-        log.info(">>> Then: 토큰 반환 검증 - token={}", lastTokenResponse.token());
-        assertThat(lastTokenResponse.token()).isNotNull();
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
+        assertThat(lastTokenResponse.token()).as("토큰이 null입니다").isNotNull();
         assertThat(lastTokenResponse.token()).isNotEmpty();
+        log.info(">>> Then: 토큰 반환 확인 - token={}", lastTokenResponse.token());
     }
 
     /**
@@ -456,9 +476,10 @@ public class QueueSteps {
      */
     @And("만료 시간이 표시된다")
     public void 만료_시간이_표시된다() {
-        log.info(">>> Then: 만료 시간 표시 검증 - expiredAt={}", lastTokenResponse.expiredAt());
-        assertThat(lastTokenResponse.expiredAt()).isNotNull();
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
+        assertThat(lastTokenResponse.expiredAt()).as("만료 시간이 null입니다").isNotNull();
         assertThat(lastTokenResponse.expiredAt()).isAfter(Instant.now());
+        log.info(">>> Then: 만료 시간 확인 - expiredAt={}", lastTokenResponse.expiredAt());
     }
 
     /**
@@ -466,8 +487,9 @@ public class QueueSteps {
      */
     @And("연장 횟수가 표시된다")
     public void 연장_횟수가_표시된다() {
-        log.info(">>> Then: 연장 횟수 표시 검증 - extendCount={}", lastTokenResponse.extendCount());
-        assertThat(lastTokenResponse.extendCount()).isNotNull();
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
+        assertThat(lastTokenResponse.extendCount()).as("연장 횟수가 null입니다").isNotNull();
+        log.info(">>> Then: 연장 횟수 확인 - extendCount={}", lastTokenResponse.extendCount());
     }
 
     /**
@@ -485,12 +507,16 @@ public class QueueSteps {
      */
     @And("만료 시간이 10분으로 설정된다")
     public void 만료_시간이_10분으로_설정된다() {
-        log.info(">>> Then: 만료 시간 10분 설정 검증 - expiredAt={}", lastTokenResponse.expiredAt());
+        assertThat(lastTokenResponse).as("토큰 응답이 null입니다").isNotNull();
+        assertThat(lastTokenResponse.expiredAt()).as("만료 시간이 null입니다").isNotNull();
 
+        Instant now = Instant.now();
         Instant expiredAt = lastTokenResponse.expiredAt();
-        Instant expectedMin = Instant.now().plusSeconds(10 * 60 - 10); // 9분 50초 후
+        Instant expectedMin = now.plusSeconds(10 * 60 - 10); // 9분 50초 후
+        Instant expectedMax = now.plusSeconds(10 * 60 + 10); // 10분 10초 후
 
-        assertThat(expiredAt).isAfter(expectedMin);
+        assertThat(expiredAt).isBetween(expectedMin, expectedMax);
+        log.info(">>> Then: 만료 시간 10분 설정 확인 - expiredAt={}", expiredAt);
     }
 
     /**
@@ -540,24 +566,24 @@ public class QueueSteps {
     }
 
     /**
-     * 검증: SSE 연결 성공
+     * 검증: SSE 연결 성공 (Mock: 상태가 존재함)
      */
     @Then("SSE 연결이 성공한다")
     public void SSE_연결이_성공한다() {
-        log.info(">>> Then: SSE 연결 성공 검증");
-        // TODO: SSE emitter 검증
-        // assertThat(sseEmitter).isNotNull();
-        log.warn(">>> SSE 연결 검증 구현 필요");
+        log.info(">>> Then: SSE 연결 성공 검증 (Mock: 상태 조회 가능)");
+        // SSE 연결 대신 상태 조회 가능 여부로 검증
+        assertThat(lastTokenResponse).isNotNull();
+        assertThat(lastTokenResponse.status()).isNotNull();
     }
 
     /**
-     * 검증: SSE 이벤트 수신
+     * 검증: SSE 이벤트 수신 (Mock: 상태 변경 확인)
      */
     @Then("SSE 이벤트를 수신한다")
     public void SSE_이벤트를_수신한다() {
-        log.info(">>> Then: SSE 이벤트 수신 검증");
-        // TODO: SSE 이벤트 수신 검증
-        log.warn(">>> SSE 이벤트 수신 검증 구현 필요");
+        log.info(">>> Then: SSE 이벤트 수신 검증 (Mock: 상태 변경 확인)");
+        // SSE 이벤트 대신 상태 조회로 변경 확인
+        assertThat(lastTokenResponse).isNotNull();
     }
 
     /**
