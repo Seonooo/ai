@@ -155,15 +155,16 @@ public class BookingTestAdapter {
     /**
      * 대기열 활성 토큰 발급 (모의)
      * 실제로는 Queue Service에서 발급받아야 하지만, 테스트에서는 올바른 형식의 토큰 생성
-     * 토큰 형식: {concertId}:{userId}:{counter}
+     * 토큰 형식: {concertId}:{userId}:{uniqueId}
      *
      * @param concertId 콘서트 ID
      * @param userId    사용자 ID
      * @return 발급된 토큰
      */
     public String issueActiveQueueToken(String concertId, Long userId) {
-        // 프로덕션 Lua 스크립트와 동일한 형식으로 토큰 생성
-        String token = concertId + ":" + userId + ":" + System.currentTimeMillis();
+        // 프로덕션 Lua 스크립트와 동일한 형식으로 토큰 생성: {concertId}:{userId}:{uniqueId}
+        // nanoTime() 사용으로 빠른 테스트 실행 시에도 고유성 보장
+        String token = concertId + ":" + userId + ":" + System.nanoTime();
         log.info(">>> Adapter: 대기열 토큰 발급 - concertId={}, userId={}, token={}", concertId, userId, token);
         return token;
     }
