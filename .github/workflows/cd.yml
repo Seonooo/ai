@@ -49,7 +49,7 @@ jobs:
               --protocol tcp \
               --port 22 \
               --cidr "${{ steps.ip.outputs.ipv4 }}/32" \
-              --description 'GitHub Actions - temp' 2>&1) || {
+              --description GitHubActions-temp 2>&1) || {
             if echo "$OUTPUT" | grep -q "InvalidPermission.Duplicate"; then
               echo "IP rule already exists (OK)"
             else
