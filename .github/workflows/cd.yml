@@ -22,7 +22,14 @@ jobs:
       # 2. 현재 러너의 공인 IP 가져오기
       - name: Get Public IP
         id: ip
-        uses: haythem/public-ip@v1.3
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          if [ -z "$IP" ]; then
+            echo "Failed to get public IP"
+            exit 1
+          fi
+          echo "Runner IP: $IP"
+          echo "ipv4=$IP" >> $GITHUB_OUTPUT
 
       # 3. AWS 자격 증명 설정
       - name: Configure AWS credentials
@@ -159,6 +166,10 @@ jobs:
       - name: Remove GitHub Actions IP from Security Group
         if: always()
         run: |
+          if [ -z "${{ steps.ip.outputs.ipv4 }}" ]; then
+            echo "No IP to remove - skipping cleanup"
+            exit 0
+          fi
           aws ec2 revoke-security-group-ingress \
               --group-id ${{ secrets.EC2_SECURITY_GROUP_ID }} \
               --protocol tcp \

@@ -39,7 +39,7 @@
 
 ### 4. AWS IAM 사용자 (보안 그룹 동적 IP 관리)
 - **목적**: GitHub Actions가 실행될 때만 보안 그룹에 IP를 추가하고, 완료 후 제거하여 보안 강화
-- **IAM 정책**:
+- **IAM 정책** (보안 그룹 특정):
   ```json
   {
     "Version": "2012-10-17",
@@ -50,11 +50,42 @@
           "ec2:AuthorizeSecurityGroupIngress",
           "ec2:RevokeSecurityGroupIngress"
         ],
-        "Resource": "arn:aws:ec2:ap-northeast-2:*:security-group/sg-*"
+        "Resource": "arn:aws:ec2:REGION:ACCOUNT_ID:security-group/SECURITY_GROUP_ID"
       }
     ]
   }
   ```
+
+  **예시** (실제 값으로 교체 필요):
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupIngress"
+        ],
+        "Resource": "arn:aws:ec2:ap-northeast-2:123456789012:security-group/sg-0123456789abcdef"
+      }
+    ]
+  }
+  ```
+
+  **값 확인 방법:**
+  - `REGION`: AWS 리전 (예: `ap-northeast-2`, `us-east-1`)
+  - `ACCOUNT_ID`: AWS 계정 ID 확인:
+    ```bash
+    aws sts get-caller-identity --query Account --output text
+    ```
+  - `SECURITY_GROUP_ID`: EC2 보안 그룹 ID (예: `sg-0123456789abcdef`)
+
+  > **⚠️ 보안 권장사항**:
+  > - 리소스 ARN에 와일드카드(`*`)를 사용하지 마세요
+  > - 특정 보안 그룹만 명시하여 최소 권한 원칙 적용
+  > - 리전은 `AWS_REGION` Secret과 일치해야 함
+
 - **IAM 사용자 생성**:
   1. AWS Console → IAM → Users → Create user
   2. User name: `github-actions-cd`
