@@ -46,10 +46,10 @@ public class BookingValidationSteps {
 
     @When("scheduleId 없이 좌석 조회를 요청한다")
     public void scheduleId_없이_좌석_조회를_요청한다() {
-        log.info(">>> When: GET /api/v1/schedules/null/seats - scheduleId 누락");
+        log.info(">>> When: GET /api/v1/schedules/{}/seats - 잘못된 scheduleId 형식", "invalid");
 
-        // scheduleId를 null로 보내면 경로 자체가 잘못되므로 404가 될 수 있음
-        // 실제로는 잘못된 형식의 ID를 보내거나 빈 값을 보냄
+        // 숫자가 아닌 문자열 전달 → @PathVariable Long 타입 변환 실패 → 400 Bad Request
+        // 빈 문자열("")은 경로 매칭 실패로 404를 발생시키므로 "invalid" 사용
         context.setLastHttpResponse(RestAssured.given()
                 .baseUri(BASE_URI)
                 .port(getPort())
@@ -57,7 +57,9 @@ public class BookingValidationSteps {
                 .header("X-User-Id", 1L)
                 .header("X-Queue-Token", "valid-token")
                 .when()
-                .get("/api/v1/schedules/{scheduleId}/seats", "")); // 빈 scheduleId
+                .get("/api/v1/schedules/{scheduleId}/seats", "invalid")); // 숫자가 아닌 값
+
+        log.info(">>> Response status: {}", context.getLastHttpResponse().statusCode());
     }
 
     @When("대기열 토큰 없이 좌석 조회를 요청한다")
