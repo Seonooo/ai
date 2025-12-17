@@ -1573,11 +1573,7 @@ public class QueueSteps {
     @When("콘서트 ID 없이 상태 조회를 시도한다")
     public void 콘서트_ID_없이_상태_조회를_시도한다() {
         log.info(">>> When: 콘서트 ID 없이 status 조회 - userId={}", currentUserId);
-        try {
-            lastHttpResponse = httpAdapter.getQueueStatus(null, currentUserId);
-        } catch (Exception e) {
-            // RestAssured captures response, but if wrapper throws
-        }
+        lastHttpResponse = httpAdapter.getQueueStatus(null, currentUserId);
     }
 
     @When("사용자 ID 없이 상태 조회를 시도한다")
