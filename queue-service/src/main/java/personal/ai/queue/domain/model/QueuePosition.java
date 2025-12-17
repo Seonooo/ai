@@ -69,10 +69,15 @@ public record QueuePosition(
                         QueueStatus status,
                         String token,
                         boolean isNewEntry) {
+                // 방어 코드: activeCapacity가 0 이하일 경우 안전한 기본값 사용
+                // (QueueConfig에서 검증하지만, 이중 안전장치로 추가)
+                int safeActiveCapacity = activeCapacity > 0 ? activeCapacity : 1;
+                int safeProcessInterval = processIntervalSeconds > 0 ? processIntervalSeconds : 1;
+
                 // 예상 대기 시간 계산
                 // (순번 / 동시처리인원) * 활성화주기 / 60 = 분 단위
                 int estimatedMinutes = (int) Math.ceil(
-                                (double) position / activeCapacity * processIntervalSeconds / SECONDS_PER_MINUTE);
+                                (double) position / safeActiveCapacity * safeProcessInterval / SECONDS_PER_MINUTE);
 
                 return new QueuePosition(
                                 concertId,

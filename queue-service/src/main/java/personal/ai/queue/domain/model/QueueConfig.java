@@ -11,6 +11,32 @@ public record QueueConfig(
         int maxExtensionCount,
         int activationIntervalSeconds // Wait -> Active 전환 주기 (초)
 ) {
+    /**
+     * Compact Constructor - 생성 시 모든 필드 검증
+     * Fail-fast: 잘못된 설정은 애플리케이션 시작 시 즉시 차단
+     */
+    public QueueConfig {
+        if (activeMaxSize <= 0) {
+            throw new IllegalArgumentException(
+                    "activeMaxSize must be positive (> 0), but was: " + activeMaxSize);
+        }
+        if (tokenTtlSeconds <= 0) {
+            throw new IllegalArgumentException(
+                    "tokenTtlSeconds must be positive (> 0), but was: " + tokenTtlSeconds);
+        }
+        if (activatedTtlSeconds <= 0) {
+            throw new IllegalArgumentException(
+                    "activatedTtlSeconds must be positive (> 0), but was: " + activatedTtlSeconds);
+        }
+        if (maxExtensionCount < 0) {
+            throw new IllegalArgumentException(
+                    "maxExtensionCount must be non-negative (>= 0), but was: " + maxExtensionCount);
+        }
+        if (activationIntervalSeconds <= 0) {
+            throw new IllegalArgumentException(
+                    "activationIntervalSeconds must be positive (> 0), but was: " + activationIntervalSeconds);
+        }
+    }
     // 기본값 상수
     private static final int DEFAULT_ACTIVE_MAX_SIZE = 50000;
     private static final int DEFAULT_TOKEN_TTL_SECONDS = 300; // 5분
