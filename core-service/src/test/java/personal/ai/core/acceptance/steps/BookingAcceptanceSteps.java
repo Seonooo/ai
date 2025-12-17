@@ -216,8 +216,9 @@ public class BookingAcceptanceSteps {
 
     @Then("예약이 생성된다")
     public void 예약이_생성된다() {
-        log.info(">>> Then: 예약 생성 검증 - HTTP 201 Created");
-        assertThat(lastHttpResponse.statusCode()).isEqualTo(201);
+        // 예약 생성: 새로운 Reservation 리소스 생성 → 201 Created
+        log.info(">>> Then: 예약 생성 검증 - HTTP 201 CREATED");
+        assertThat(lastHttpResponse.statusCode()).isEqualTo(HttpStatus.CREATED.value());
         Long reservationId = lastHttpResponse.jsonPath().getLong("data.reservationId");
         assertThat(reservationId).isNotNull();
     }
@@ -281,8 +282,9 @@ public class BookingAcceptanceSteps {
 
     @Then("결제가 완료된다")
     public void 결제가_완료된다() {
-        log.info(">>> Then: 결제 완료 검증 - HTTP 200 OK");
-        assertThat(lastHttpResponse.statusCode()).isEqualTo(200);
+        // 결제 생성: 새로운 Payment 리소스 생성 → 201 Created
+        log.info(">>> Then: 결제 완료 검증 - HTTP 201 CREATED");
+        assertThat(lastHttpResponse.statusCode()).isEqualTo(HttpStatus.CREATED.value());
         Long paymentId = lastHttpResponse.jsonPath().getLong("data.paymentId");
         assertThat(paymentId).isNotNull();
     }
