@@ -37,7 +37,7 @@ public record QueueToken(
     }
 
     /**
-     * 활성화 대기 토큰 생성 (Active Queue - Ready 상태)
+     * 입장 준비 토큰 생성 (Active Queue - Ready 상태)
      */
     public static QueueToken ready(String concertId, String userId, String token, Instant expiredAt) {
         return new QueueToken(
@@ -101,7 +101,7 @@ public record QueueToken(
     }
 
     /**
-     * 활성 상태인지 확인
+     * 활성 상태인지 확인 (READY 또는 ACTIVE)
      */
     public boolean isActive() {
         return status == QueueStatus.ACTIVE || status == QueueStatus.READY;
@@ -151,6 +151,10 @@ public record QueueToken(
     public void ensureCanExtend() {
         if (!canExtend()) {
             throw new QueueExtensionLimitExceededException(concertId, userId);
+        }
+
+        if (isExpired()) {
+            throw new QueueTokenExpiredException(concertId, userId);
         }
 
         if (!isActive()) {

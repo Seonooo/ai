@@ -122,6 +122,18 @@ public class QueueTestAdapter {
     }
 
     /**
+     * 토큰 즉시 만료 (테스트용)
+     * 사용자의 토큰을 강제로 만료 상태로 변경합니다.
+     */
+    public void expireTokenImmediately(String concertId, String userId) {
+        // Active Queue에서 해당 사용자 제거
+        queueRepository.removeFromActiveQueue(concertId, userId);
+        // 만료된 상태로 재등록 (과거 시간으로)
+        String token = concertId + ":" + userId + ":" + System.nanoTime();
+        queueRepository.addToActiveQueue(concertId, userId, token, Instant.now().minusSeconds(3600));
+    }
+
+    /**
      * 모든 대기열 초기화 (테스트 준비)
      */
     public void clearAllQueues() {

@@ -9,12 +9,12 @@ public record QueueConfig(
         int tokenTtlSeconds,
         int activatedTtlSeconds,
         int maxExtensionCount,
-        int activationIntervalSeconds  // Wait -> Active 전환 주기 (초)
+        int activationIntervalSeconds // Wait -> Active 전환 주기 (초)
 ) {
     // 기본값 상수
     private static final int DEFAULT_ACTIVE_MAX_SIZE = 50000;
-    private static final int DEFAULT_TOKEN_TTL_SECONDS = 300;  // 5분
-    private static final int DEFAULT_ACTIVATED_TTL_SECONDS = 600;  // 10분
+    private static final int DEFAULT_TOKEN_TTL_SECONDS = 300; // 5분
+    private static final int DEFAULT_ACTIVATED_TTL_SECONDS = 600; // 10분
     private static final int DEFAULT_MAX_EXTENSION_COUNT = 2;
     private static final int DEFAULT_ACTIVATION_INTERVAL_SECONDS = 5;
 
@@ -27,8 +27,7 @@ public record QueueConfig(
                 DEFAULT_TOKEN_TTL_SECONDS,
                 DEFAULT_ACTIVATED_TTL_SECONDS,
                 DEFAULT_MAX_EXTENSION_COUNT,
-                DEFAULT_ACTIVATION_INTERVAL_SECONDS
-        );
+                DEFAULT_ACTIVATION_INTERVAL_SECONDS);
     }
 
     /**
@@ -40,7 +39,6 @@ public record QueueConfig(
                 tokenTtlSeconds,
                 DEFAULT_ACTIVATED_TTL_SECONDS,
                 DEFAULT_MAX_EXTENSION_COUNT,
-                activationIntervalSeconds
-        );
+                activationIntervalSeconds);
     }
 }

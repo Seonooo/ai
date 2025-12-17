@@ -23,151 +23,142 @@ import personal.ai.queue.domain.model.QueueToken;
 @RestController
 @RequestMapping("/api/v1/queue")
 @RequiredArgsConstructor
+@org.springframework.validation.annotation.Validated
 public class QueueController {
 
-    private final EnterQueueUseCase enterQueueUseCase;
-    private final GetQueueStatusUseCase getQueueStatusUseCase;
-    private final ActivateTokenUseCase activateTokenUseCase;
-    private final ExtendTokenUseCase extendTokenUseCase;
-    private final ValidateTokenUseCase validateTokenUseCase;
-    private final QueuePollingService queuePollingService;
+        private final EnterQueueUseCase enterQueueUseCase;
+        private final GetQueueStatusUseCase getQueueStatusUseCase;
+        private final ActivateTokenUseCase activateTokenUseCase;
+        private final ExtendTokenUseCase extendTokenUseCase;
+        private final ValidateTokenUseCase validateTokenUseCase;
+        private final QueuePollingService queuePollingService;
 
-    /**
-     * 대기열 진입
-     * POST /api/v1/queue/enter
-     */
-    @PostMapping("/enter")
-    public ResponseEntity<ApiResponse<QueuePositionResponse>> enterQueue(
-            @Valid @RequestBody EnterQueueRequest request) {
+        /**
+         * 대기열 진입
+         * POST /api/v1/queue/enter
+         */
+        @PostMapping("/enter")
+        public ResponseEntity<ApiResponse<QueuePositionResponse>> enterQueue(
+                        @Valid @RequestBody EnterQueueRequest request) {
 
-        log.info("Enter queue request: concertId={}, userId={}",
-                request.concertId(), request.userId());
+                log.info("Enter queue request: concertId={}, userId={}",
+                                request.concertId(), request.userId());
 
-        EnterQueueUseCase.EnterQueueCommand command =
-                new EnterQueueUseCase.EnterQueueCommand(
-                        request.concertId(),
-                        request.userId()
-                );
+                EnterQueueUseCase.EnterQueueCommand command = new EnterQueueUseCase.EnterQueueCommand(
+                                request.concertId(),
+                                request.userId());
 
-        QueuePosition position = enterQueueUseCase.enter(command);
-        QueuePositionResponse response = QueuePositionResponse.from(position);
+                QueuePosition position = enterQueueUseCase.enter(command);
+                QueuePositionResponse response = QueuePositionResponse.from(position);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("대기열에 진입했습니다.", response));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("대기열에 진입했습니다.", response));
+        }
 
-    /**
-     * 대기열 상태 조회
-     * GET /api/v1/queue/status?concertId={concertId}&userId={userId}
-     */
-    @GetMapping("/status")
-    public ResponseEntity<ApiResponse<QueueTokenResponse>> getQueueStatus(
-            @RequestParam String concertId,
-            @RequestParam String userId) {
+        /**
+         * 대기열 상태 조회
+         * GET /api/v1/queue/status?concertId={concertId}&userId={userId}
+         */
+        @GetMapping("/status")
+        public ResponseEntity<ApiResponse<QueueTokenResponse>> getQueueStatus(
+                        @RequestParam @jakarta.validation.constraints.NotBlank String concertId,
+                        @RequestParam @jakarta.validation.constraints.NotBlank String userId) {
 
-        log.debug("Get queue status: concertId={}, userId={}", concertId, userId);
+                log.debug("Get queue status: concertId={}, userId={}", concertId, userId);
 
-        GetQueueStatusUseCase.GetQueueStatusQuery query =
-                new GetQueueStatusUseCase.GetQueueStatusQuery(concertId, userId);
+                GetQueueStatusUseCase.GetQueueStatusQuery query = new GetQueueStatusUseCase.GetQueueStatusQuery(
+                                concertId, userId);
 
-        QueueToken token = getQueueStatusUseCase.getStatus(query);
-        QueueTokenResponse response = QueueTokenResponse.from(token);
+                QueueToken token = getQueueStatusUseCase.getStatus(query);
+                QueueTokenResponse response = QueueTokenResponse.from(token);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("대기열 상태 조회 완료", response)
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success("대기열 상태 조회 완료", response));
+        }
 
-    /**
-     * 토큰 활성화 (READY -> ACTIVE)
-     * 예매 페이지 최초 접속 시 호출
-     * POST /api/v1/queue/activate
-     */
-    @PostMapping("/activate")
-    public ResponseEntity<ApiResponse<QueueTokenResponse>> activateToken(
-            @RequestParam String concertId,
-            @RequestParam String userId) {
+        /**
+         * 토큰 활성화 (READY -> ACTIVE)
+         * 예매 페이지 최초 접속 시 호출
+         * POST /api/v1/queue/activate
+         */
+        @PostMapping("/activate")
+        public ResponseEntity<ApiResponse<QueueTokenResponse>> activateToken(
+                        @RequestParam @jakarta.validation.constraints.NotBlank String concertId,
+                        @RequestParam @jakarta.validation.constraints.NotBlank String userId) {
 
-        log.info("Activate token: concertId={}, userId={}", concertId, userId);
+                log.info("Activate token: concertId={}, userId={}", concertId, userId);
 
-        ActivateTokenUseCase.ActivateTokenCommand command =
-                new ActivateTokenUseCase.ActivateTokenCommand(concertId, userId);
+                ActivateTokenUseCase.ActivateTokenCommand command = new ActivateTokenUseCase.ActivateTokenCommand(
+                                concertId, userId);
 
-        QueueToken token = activateTokenUseCase.activate(command);
-        QueueTokenResponse response = QueueTokenResponse.from(token);
+                QueueToken token = activateTokenUseCase.activate(command);
+                QueueTokenResponse response = QueueTokenResponse.from(token);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("토큰이 활성화되었습니다.", response)
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success("토큰이 활성화되었습니다.", response));
+        }
 
-    /**
-     * 토큰 연장 (최대 2회)
-     * POST /api/v1/queue/extend
-     */
-    @PostMapping("/extend")
-    public ResponseEntity<ApiResponse<QueueTokenResponse>> extendToken(
-            @Valid @RequestBody ExtendTokenRequest request) {
+        /**
+         * 토큰 연장 (최대 2회)
+         * POST /api/v1/queue/extend
+         */
+        @PostMapping("/extend")
+        public ResponseEntity<ApiResponse<QueueTokenResponse>> extendToken(
+                        @Valid @RequestBody ExtendTokenRequest request) {
 
-        log.info("Extend token: concertId={}, userId={}",
-                request.concertId(), request.userId());
+                log.info("Extend token: concertId={}, userId={}",
+                                request.concertId(), request.userId());
 
-        ExtendTokenUseCase.ExtendTokenCommand command =
-                new ExtendTokenUseCase.ExtendTokenCommand(
-                        request.concertId(),
-                        request.userId()
-                );
+                ExtendTokenUseCase.ExtendTokenCommand command = new ExtendTokenUseCase.ExtendTokenCommand(
+                                request.concertId(),
+                                request.userId());
 
-        QueueToken token = extendTokenUseCase.extend(command);
-        QueueTokenResponse response = QueueTokenResponse.from(token);
+                QueueToken token = extendTokenUseCase.extend(command);
+                QueueTokenResponse response = QueueTokenResponse.from(token);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("토큰 유효 시간이 연장되었습니다.", response)
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success("토큰 유효 시간이 연장되었습니다.", response));
+        }
 
-    /**
-     * 토큰 검증
-     * POST /api/v1/queue/validate
-     * 예매/결제 API 호출 시 사용
-     */
-    @PostMapping("/validate")
-    public ResponseEntity<ApiResponse<Void>> validateToken(
-            @Valid @RequestBody ValidateTokenRequest request) {
+        /**
+         * 토큰 검증
+         * POST /api/v1/queue/validate
+         * 예매/결제 API 호출 시 사용
+         */
+        @PostMapping("/validate")
+        public ResponseEntity<ApiResponse<Void>> validateToken(
+                        @Valid @RequestBody ValidateTokenRequest request) {
 
-        log.debug("Validate token: concertId={}, userId={}",
-                request.concertId(), request.userId());
+                log.debug("Validate token: concertId={}, userId={}",
+                                request.concertId(), request.userId());
 
-        ValidateTokenUseCase.ValidateTokenQuery query =
-                new ValidateTokenUseCase.ValidateTokenQuery(
-                        request.concertId(),
-                        request.userId(),
-                        request.token()
-                );
+                ValidateTokenUseCase.ValidateTokenQuery query = new ValidateTokenUseCase.ValidateTokenQuery(
+                                request.concertId(),
+                                request.userId(),
+                                request.token());
 
-        validateTokenUseCase.validate(query);
+                validateTokenUseCase.validate(query);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("유효한 토큰입니다.", null)
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success("유효한 토큰입니다.", null));
+        }
 
-    /**
-     * 대기열 상태 실시간 구독 (SSE)
-     * GET /api/v1/queue/subscribe?concertId={concertId}&userId={userId}
-     *
-     * 클라이언트가 이 엔드포인트에 연결하면 상태 변경을 실시간으로 수신
-     * - WAITING -> READY: 예매 페이지 진입 가능 알림
-     * - 순번 변경: 현재 대기 순번 업데이트
-     */
-    @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribeQueueStatus(
-            @RequestParam String concertId,
-            @RequestParam String userId) {
+        /**
+         * 대기열 상태 실시간 구독 (SSE)
+         * GET /api/v1/queue/subscribe?concertId={concertId}&userId={userId}
+         *
+         * 클라이언트가 이 엔드포인트에 연결하면 상태 변경을 실시간으로 수신
+         * - WAITING -> READY: 예매 페이지 진입 가능 알림
+         * - 순번 변경: 현재 대기 순번 업데이트
+         */
+        @GetMapping(value = "/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public SseEmitter subscribeQueueStatus(
+                        @RequestParam @jakarta.validation.constraints.NotBlank String concertId,
+                        @RequestParam @jakarta.validation.constraints.NotBlank String userId) {
 
-        log.info("SSE subscription request: concertId={}, userId={}", concertId, userId);
+                log.info("SSE subscription request: concertId={}, userId={}", concertId, userId);
 
-        return queuePollingService.subscribe(concertId, userId);
-    }
+                return queuePollingService.subscribe(concertId, userId);
+        }
 }

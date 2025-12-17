@@ -101,6 +101,7 @@ public class QueueAcceptanceSteps {
     // ==========================================
 
     @When("대기열에 등록을 요청한다")
+    @When("대기열에 다시 등록을 요청한다")
     public void requestQueueRegistration() {
         log.info(">>> 대기열 등록 요청");
         lastResponse = httpAdapter.enterQueue(concertId, userId);
