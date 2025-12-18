@@ -11,7 +11,7 @@ public enum QueueStatus {
     WAITING,
 
     /**
-     * 활성화됨 (Active Queue로 전환됨, 아직 페이지 접속 전 - TTL 5분)
+     * 입장 준비됨 (Active Queue로 전환됨, 아직 페이지 접속 전 - TTL 5분)
      */
     READY,
 

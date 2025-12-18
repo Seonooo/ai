@@ -5,44 +5,88 @@ package personal.ai.queue.domain.model;
  * 대기 중인 유저의 순번과 예상 대기 시간 정보
  */
 public record QueuePosition(
-        String concertId,
-        String userId,
-        Long position,
-        Long totalWaiting,
-        Integer estimatedWaitMinutes
-) {
-    // 상수
-    private static final int SECONDS_PER_MINUTE = 60;
+                String concertId,
+                String userId,
+                Long position,
+                Long totalWaiting,
+                Integer estimatedWaitMinutes,
+                String status,
+                String token,
+                boolean isNewEntry) {
+        // 상수
+        private static final int SECONDS_PER_MINUTE = 60;
 
-    /**
-     * 예상 대기 시간 계산
-     * @param concertId 콘서트 ID
-     * @param userId 사용자 ID
-     * @param position 현재 순번
-     * @param totalWaiting 전체 대기 인원
-     * @param activeCapacity 동시 처리 가능 인원
-     * @param processIntervalSeconds 활성화 주기 (초)
-     */
-    public static QueuePosition calculate(
-            String concertId,
-            String userId,
-            Long position,
-            Long totalWaiting,
-            int activeCapacity,
-            int processIntervalSeconds
-    ) {
-        // 예상 대기 시간 계산
-        // (순번 / 동시처리인원) * 활성화주기 / 60 = 분 단위
-        int estimatedMinutes = (int) Math.ceil(
-                (double) position / activeCapacity * processIntervalSeconds / SECONDS_PER_MINUTE
-        );
+        /**
+         * 신규 진입 대기열 정보 생성
+         */
+        public static QueuePosition newEntry(
+                        String concertId,
+                        String userId,
+                        Long position,
+                        Long totalWaiting,
+                        int activeCapacity,
+                        int processIntervalSeconds) {
+                return create(concertId, userId, position, totalWaiting, activeCapacity, processIntervalSeconds,
+                                QueueStatus.WAITING, null, true);
+        }
 
-        return new QueuePosition(
-                concertId,
-                userId,
-                position,
-                totalWaiting,
-                estimatedMinutes
-        );
-    }
+        /**
+         * 이미 대기 중인 대기열 정보 생성
+         */
+        public static QueuePosition alreadyWaiting(
+                        String concertId,
+                        String userId,
+                        Long position,
+                        Long totalWaiting,
+                        int activeCapacity,
+                        int processIntervalSeconds) {
+                return create(concertId, userId, position, totalWaiting, activeCapacity, processIntervalSeconds,
+                                QueueStatus.WAITING, null, false);
+        }
+
+        /**
+         * 이미 활성화된 상태 정보 생성
+         */
+        public static QueuePosition alreadyActive(QueueToken token) {
+                return new QueuePosition(
+                                token.concertId(),
+                                token.userId(),
+                                0L, // Position 0 for active users
+                                0L,
+                                0, // 0 minutes wait
+                                token.status().name(),
+                                token.token(),
+                                false);
+        }
+
+        private static QueuePosition create(
+                        String concertId,
+                        String userId,
+                        Long position,
+                        Long totalWaiting,
+                        int activeCapacity,
+                        int processIntervalSeconds,
+                        QueueStatus status,
+                        String token,
+                        boolean isNewEntry) {
+                // 방어 코드: activeCapacity가 0 이하일 경우 안전한 기본값 사용
+                // (QueueConfig에서 검증하지만, 이중 안전장치로 추가)
+                int safeActiveCapacity = activeCapacity > 0 ? activeCapacity : 1;
+                int safeProcessInterval = processIntervalSeconds > 0 ? processIntervalSeconds : 1;
+
+                // 예상 대기 시간 계산
+                // (순번 / 동시처리인원) * 활성화주기 / 60 = 분 단위
+                int estimatedMinutes = (int) Math.ceil(
+                                (double) position / safeActiveCapacity * safeProcessInterval / SECONDS_PER_MINUTE);
+
+                return new QueuePosition(
+                                concertId,
+                                userId,
+                                position,
+                                totalWaiting,
+                                estimatedMinutes,
+                                status.name(),
+                                token,
+                                isNewEntry);
+        }
 }

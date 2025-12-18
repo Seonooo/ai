@@ -416,6 +416,95 @@ public class BookingTestAdapter {
     }
 
     /**
+     * 예약 만료 시키기 (테스트용)
+     *
+     * @param reservationId 예약 ID
+     */
+    /**
+     * 예약 요청 보내기 (검증 없음, Raw Response 반환)
+     */
+    public io.restassured.response.Response sendReservationRequest(Map<String, Object> body, Long userId,
+            String token) {
+        return RestAssured.given()
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .header("X-Queue-Token", token)
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when()
+                .post("/api/v1/reservations");
+    }
+
+    /**
+     * 예약 조회 요청 보내기 (검증 없음, Raw Response 반환)
+     */
+    public io.restassured.response.Response sendGetReservationRequest(Long reservationId, Long userId) {
+        return RestAssured.given()
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .contentType(ContentType.JSON)
+                .when()
+                .get("/api/v1/reservations/{reservationId}", reservationId);
+    }
+
+    /**
+     * 결제 요청 보내기 (검증 없음, Raw Response 반환)
+     */
+    public io.restassured.response.Response sendPaymentRequest(Map<String, Object> body, Long userId) {
+        return RestAssured.given()
+                .baseUri(BASE_URI)
+                .port(getPort())
+                .header("X-User-Id", userId)
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when()
+                .post("/api/v1/payments");
+    }
+
+    /**
+     * 예약 만료 시키기 (테스트용)
+     *
+     * @param reservationId 예약 ID
+     */
+    public void expireReservationImmediately(Long reservationId) {
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + reservationId));
+
+        // 만료 시간과 생성 시간을 과거로 변경 (Reflection 사용)
+        java.time.LocalDateTime past = java.time.LocalDateTime.now().minusMinutes(10);
+        modifyPrivateField(reservation, "expiresAt", past);
+        modifyPrivateField(reservation, "createdAt", past);
+
+        // 상태 변경 (public setter 존재)
+        reservation.updateStatus(ReservationStatus.CANCELLED);
+
+        reservationRepository.save(reservation);
+        log.info(">>> Adapter: 예약 강제 만료 - reservationId={}", reservationId);
+    }
+
+    /**
+     * Private 필드 값 변경 (Reflection)
+     */
+    private void modifyPrivateField(Object target, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Test Adapter: Failed to modify private field " + fieldName, e);
+        }
+    }
+
+    /**
+     * 이미 확정된 예약 생성 (테스트용)
+     */
+    public Long createCompletedReservation(Long userId, Long seatId) {
+        return createReservation(null, userId, seatId, ReservationStatus.CONFIRMED);
+    }
+
+    /**
      * Outbox 이벤트 페이로드 검증
      *
      * @param paymentId 결제 ID

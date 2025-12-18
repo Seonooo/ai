@@ -4,6 +4,7 @@ import personal.ai.common.exception.BusinessException;
 import personal.ai.common.exception.ErrorCode;
 import personal.ai.core.booking.domain.exception.InvalidReservationStateException;
 import personal.ai.core.booking.domain.exception.ReservationAccessDeniedException;
+import personal.ai.core.booking.domain.exception.ReservationAlreadyConfirmedException;
 
 import java.time.LocalDateTime;
 
@@ -151,9 +152,16 @@ public record Reservation(
     /**
      * PENDING 상태 검증
      *
-     * @throws InvalidReservationStateException PENDING 상태가 아닐 때
+     * @throws ReservationAlreadyConfirmedException 이미 확정된 예약일 때 (중복 결제 시도)
+     * @throws InvalidReservationStateException 기타 유효하지 않은 상태일 때
      */
     public void ensurePending() {
+        // 이미 확정된 예약: 중복 결제 시도 (409 CONFLICT)
+        if (status == ReservationStatus.CONFIRMED) {
+            throw new ReservationAlreadyConfirmedException(id);
+        }
+
+        // 기타 유효하지 않은 상태 (400 BAD_REQUEST)
         if (!isPending()) {
             throw new InvalidReservationStateException(status);
         }

@@ -4,8 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import personal.ai.queue.application.port.in.EnterQueueUseCase;
-import personal.ai.queue.application.port.out.QueueRepository;
-import personal.ai.queue.domain.model.QueueConfig;
 import personal.ai.queue.domain.model.QueuePosition;
 
 /**
@@ -17,27 +15,18 @@ import personal.ai.queue.domain.model.QueuePosition;
 @RequiredArgsConstructor
 public class EnterQueueService implements EnterQueueUseCase {
 
-    private static final int POSITION_DISPLAY_OFFSET = 1;
-
-    private final QueueRepository queueRepository;
-    private final QueueConfig queueConfig;
+    private final QueueEntryValidator queueEntryValidator;
+    private final QueueEntryProcessor queueEntryProcessor;
 
     @Override
     public QueuePosition enter(EnterQueueCommand command) {
-        long position = queueRepository.addToWaitQueue(command.concertId(), command.userId());
-        long totalWaiting = queueRepository.getWaitQueueSize(command.concertId());
+        String concertId = command.concertId();
+        String userId = command.userId();
 
-        var result = QueuePosition.calculate(
-                command.concertId(),
-                command.userId(),
-                position + POSITION_DISPLAY_OFFSET,
-                totalWaiting,
-                queueConfig.activeMaxSize(),
-                queueConfig.activationIntervalSeconds());
-
-        log.debug("Queue entry completed: concertId={}, userId={}, position={}",
-                command.concertId(), command.userId(), position + POSITION_DISPLAY_OFFSET);
-
-        return result;
+        // 1. 이미 진입한 사용자인지 확인 (기존 상태 반환)
+        return queueEntryValidator.checkActiveUser(concertId, userId)
+                .or(() -> queueEntryValidator.checkWaitingUser(concertId, userId))
+                // 2. 신규 진입 처리
+                .orElseGet(() -> queueEntryProcessor.proceed(concertId, userId));
     }
 }
