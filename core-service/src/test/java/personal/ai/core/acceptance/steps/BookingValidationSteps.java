@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
+import personal.ai.common.exception.ErrorCode;
 import personal.ai.core.acceptance.support.BookingTestAdapter;
 import personal.ai.core.acceptance.support.BookingTestContext;
 
@@ -305,41 +306,91 @@ public class BookingValidationSteps {
     @Then("잘못된 입력값이라는 메시지가 반환된다")
     public void 잘못된_입력값이라는_메시지가_반환된다() {
         log.info(">>> Then: 잘못된 입력값 메시지 확인");
+        String code = context.getLastHttpResponse().jsonPath().getString("code");
         String message = context.getLastHttpResponse().jsonPath().getString("message");
-        assertThat(message).isNotNull();
-        log.debug("Error message: {}", message);
+
+        assertThat(code).isEqualTo(ErrorCode.INVALID_INPUT.getCode());
+        // Validation 예외는 다양한 메시지를 반환할 수 있으므로 기본 메시지를 포함하는지 확인
+        assertThat(message).containsAnyOf(
+                ErrorCode.INVALID_INPUT.getMessage(),
+                "입력값이 유효하지 않습니다",
+                "필수 파라미터가 누락되었습니다"
+        );
+        log.debug("Error code: {}, message: {}", code, message);
     }
 
     @Then("대기열 토큰이 필요하다는 메시지가 반환된다")
     public void 대기열_토큰이_필요하다는_메시지가_반환된다() {
         log.info(">>> Then: 대기열 토큰 필요 메시지 확인");
+        String code = context.getLastHttpResponse().jsonPath().getString("code");
         String message = context.getLastHttpResponse().jsonPath().getString("message");
-        assertThat(message).isNotNull();
-        log.debug("Error message: {}", message);
+
+        // 토큰이 누락된 경우 INVALID_INPUT, UNAUTHORIZED, 또는 QUEUE_TOKEN_NOT_FOUND일 수 있음
+        assertThat(code).isIn(
+                ErrorCode.INVALID_INPUT.getCode(),
+                ErrorCode.UNAUTHORIZED.getCode(),
+                ErrorCode.QUEUE_TOKEN_NOT_FOUND.getCode()
+        );
+        // 각 에러 코드에 해당하는 메시지 중 하나를 포함해야 함
+        assertThat(message).containsAnyOf(
+                ErrorCode.INVALID_INPUT.getMessage(),
+                ErrorCode.UNAUTHORIZED.getMessage(),
+                ErrorCode.QUEUE_TOKEN_NOT_FOUND.getMessage(),
+                "토큰",
+                "대기열"
+        );
+        log.debug("Error code: {}, message: {}", code, message);
     }
 
     @Then("유효하지 않은 토큰이라는 메시지가 반환된다")
     public void 유효하지_않은_토큰이라는_메시지가_반환된다() {
         log.info(">>> Then: 유효하지 않은 토큰 메시지 확인");
+        String code = context.getLastHttpResponse().jsonPath().getString("code");
         String message = context.getLastHttpResponse().jsonPath().getString("message");
-        assertThat(message).isNotNull();
-        log.debug("Error message: {}", message);
+
+        assertThat(code).isEqualTo(ErrorCode.QUEUE_TOKEN_INVALID.getCode());
+        assertThat(message).isEqualTo(ErrorCode.QUEUE_TOKEN_INVALID.getMessage());
+        log.debug("Error code: {}, message: {}", code, message);
     }
 
     @Then("사용자 인증이 필요하다는 메시지가 반환된다")
     public void 사용자_인증이_필요하다는_메시지가_반환된다() {
         log.info(">>> Then: 사용자 인증 필요 메시지 확인");
+        String code = context.getLastHttpResponse().jsonPath().getString("code");
         String message = context.getLastHttpResponse().jsonPath().getString("message");
-        assertThat(message).isNotNull();
-        log.debug("Error message: {}", message);
+
+        // 사용자 인증 관련 에러는 UNAUTHORIZED 또는 INVALID_CREDENTIALS일 수 있음
+        assertThat(code).isIn(
+                ErrorCode.UNAUTHORIZED.getCode(),
+                ErrorCode.INVALID_CREDENTIALS.getCode(),
+                ErrorCode.INVALID_INPUT.getCode()
+        );
+        // 각 에러 코드에 해당하는 메시지 중 하나를 포함해야 함
+        assertThat(message).containsAnyOf(
+                ErrorCode.UNAUTHORIZED.getMessage(),
+                ErrorCode.INVALID_CREDENTIALS.getMessage(),
+                ErrorCode.INVALID_INPUT.getMessage(),
+                "인증",
+                "사용자"
+        );
+        log.debug("Error code: {}, message: {}", code, message);
     }
 
     @Then("잘못된 금액이라는 메시지가 반환된다")
     public void 잘못된_금액이라는_메시지가_반환된다() {
         log.info(">>> Then: 잘못된 금액 메시지 확인");
+        String code = context.getLastHttpResponse().jsonPath().getString("code");
         String message = context.getLastHttpResponse().jsonPath().getString("message");
-        assertThat(message).isNotNull();
-        log.debug("Error message: {}", message);
+
+        assertThat(code).isEqualTo(ErrorCode.INVALID_INPUT.getCode());
+        // 금액 검증 실패 시 다양한 메시지가 나올 수 있음
+        assertThat(message).containsAnyOf(
+                ErrorCode.INVALID_INPUT.getMessage(),
+                "금액",
+                "amount",
+                "양수"
+        );
+        log.debug("Error code: {}, message: {}", code, message);
     }
 
     // ==========================================
